@@ -1,0 +1,37 @@
+name: Build Installer
+on:
+  push:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Publish app
+        run: dotnet publish src/BnbcUltimatePro/BnbcUltimatePro.csproj -c Release -o publish
+      - name: Self-test
+        run: |
+          $p = Start-Process -FilePath publish\BnbcUltimatePro.exe -ArgumentList "--selftest" -Wait -PassThru
+          Write-Host "Self-test exit code: $($p.ExitCode)"
+          if ($p.ExitCode -ne 0) { exit 1 }
+      - name: Install Inno Setup
+        run: choco install innosetup -y --no-progress
+      - name: Build installer
+        run: |
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" installer\setup.iss
+          if (-not (Test-Path installer\Output\BNBC_Ultimate_Pro_Setup.exe)) { exit 1 }
+      - name: Silent install test
+        run: |
+          $i = Start-Process -FilePath installer\Output\BNBC_Ultimate_Pro_Setup.exe -ArgumentList "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART" -Wait -PassThru
+          if ($i.ExitCode -ne 0) { exit 1 }
+          $exe = "${env:ProgramFiles}\BNBC Ultimate Pro\BnbcUltimatePro.exe"
+          if (-not (Test-Path $exe)) { exit 1 }
+          $p = Start-Process -FilePath $exe -ArgumentList "--selftest" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { exit 1 }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BNBC_Ultimate_Pro_Setup
+          path: installer/Output/BNBC_Ultimate_Pro_Setup.exe
