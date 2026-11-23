@@ -47,6 +47,7 @@
         <Button Style="{StaticResource NavBtn}" Content="Project Setup" Tag="PageProject" Click="Nav_Click"/>
         <Button Style="{StaticResource NavBtn}" Content="Seismic Parameters" Tag="PageSeismic" Click="Nav_Click"/>
         <Button Style="{StaticResource NavBtn}" Content="Load Patterns" Tag="PageLoads" Click="Nav_Click"/>
+        <Button Style="{StaticResource NavBtn}" Content="Load Combinations" Tag="PageCombos" Click="Nav_Click"/>
         <TextBlock Text="BNBC 2020 / ETABS 22" Foreground="#6B7FA8" FontSize="11" Margin="18,30,0,0"/>
       </StackPanel>
     </Border>
@@ -126,6 +127,43 @@
               </DataGrid.Columns>
             </DataGrid>
           </DockPanel>
+        </Border>
+
+        <!-- Combinations -->
+        <Border x:Name="PageCombos" Background="{StaticResource Card}" CornerRadius="6" Padding="20" Visibility="Collapsed">
+          <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel>
+            <TextBlock Text="Load Combinations (BNBC 2020 Sec 2.7)" FontSize="22" FontWeight="Bold"/>
+            <TextBlock Foreground="#9FB4D9" TextWrapping="Wrap" Margin="0,6,0,8"
+                       Text="Type the ETABS load pattern names for each symbol, separated by commas. D, F, H, L, Lr, R, T: all listed names are added together. W and E: each name makes its own set of combinations. Leave blank if the load is not used."/>
+            <DataGrid x:Name="MapGrid" AutoGenerateColumns="False" CanUserAddRows="False" HeadersVisibility="Column" Height="270">
+              <DataGrid.Columns>
+                <DataGridTextColumn Header="Symbol" Binding="{Binding Symbol}" IsReadOnly="True" Width="60"/>
+                <DataGridTextColumn Header="Load" Binding="{Binding Description}" IsReadOnly="True" Width="*"/>
+                <DataGridTextColumn Header="ETABS load name(s)" Binding="{Binding Patterns}" Width="280"/>
+              </DataGrid.Columns>
+            </DataGrid>
+            <WrapPanel Margin="0,10,0,0">
+              <CheckBox x:Name="ChkUls" IsChecked="True" Margin="0,0,18,4"><TextBlock Text="Strength design (Sec 2.7.3)" TextWrapping="Wrap"/></CheckBox>
+              <CheckBox x:Name="ChkAsd" Margin="0,0,18,4"><TextBlock Text="Allowable stress (Sec 2.7.2)" TextWrapping="Wrap"/></CheckBox>
+              <CheckBox x:Name="ChkPm" IsChecked="True" Margin="0,0,18,4"><TextBlock Text="Both directions (+ and -) for W and E" TextWrapping="Wrap"/></CheckBox>
+            </WrapPanel>
+            <CheckBox x:Name="ChkL05" Margin="0,2,0,2"><TextBlock TextWrapping="Wrap" Text="Exception 1: L factor 0.5 in strength combinations 3, 4, 5 (only if live load is 5.0 kN/m2 or less and the area is not a garage or public assembly)"/></CheckBox>
+            <CheckBox x:Name="Chk13W" Margin="0,2,0,2"><TextBlock TextWrapping="Wrap" Text="Exception 3: 1.3W instead of 1.6W in strength combinations 4 and 6 (reinforced concrete, W not reduced by a directionality factor)"/></CheckBox>
+            <TextBlock Foreground="#FBBF24" TextWrapping="Wrap" Margin="0,8,0,0"
+                       Text="Not generated: flood / tidal-surge combinations (Fa), and Ev inside E. If your E already includes the vertical part, use that load name for E. You decide the exceptions above; nothing is applied automatically."/>
+            <StackPanel Orientation="Horizontal" Margin="0,12,0,12">
+              <Button Style="{StaticResource ActBtn}" Content="Generate Preview" Click="ComboPreview_Click"/>
+              <Button Style="{StaticResource ActBtn}" Content="Create in ETABS" Click="ComboCreate_Click" Background="#0891B2"/>
+            </StackPanel>
+            <DataGrid x:Name="ComboGrid" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True" HeadersVisibility="Column" Height="320">
+              <DataGrid.Columns>
+                <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="90"/>
+                <DataGridTextColumn Header="Definition" Binding="{Binding Definition}" Width="*"/>
+                <DataGridTextColumn Header="Code reference" Binding="{Binding Reference}" Width="250"/>
+                <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="190"/>
+              </DataGrid.Columns>
+            </DataGrid>
+          </StackPanel></ScrollViewer>
         </Border>
       </Grid>
 

@@ -17,9 +17,11 @@ namespace BnbcUltimatePro
         readonly EtabsConnector etabs = new EtabsConnector();
         readonly ObservableCollection<string> log = new ObservableCollection<string>();
         readonly ObservableCollection<PatternSpec> patterns = new ObservableCollection<PatternSpec>();
-        readonly string[] pageNames = { "PageDashboard", "PageProject", "PageSeismic", "PageLoads" };
+        readonly string[] pageNames = { "PageDashboard", "PageProject", "PageSeismic", "PageLoads", "PageCombos" };
         static readonly string[] PatternTypes = { "Dead", "SuperDead", "Live", "ReduceLive", "RoofLive", "Quake", "Wind", "Snow", "Other" };
         bool loading;
+        readonly ObservableCollection<MapRow> mapRows = new ObservableCollection<MapRow>();
+        readonly ObservableCollection<ComboRow> comboRows = new ObservableCollection<ComboRow>();
 
         public MainWindow()
         {
@@ -34,6 +36,17 @@ namespace BnbcUltimatePro
             patterns.Add(new PatternSpec { Name = "DEAD", Type = "Dead", SelfWeight = 1, Status = "not checked" });
             patterns.Add(new PatternSpec { Name = "SDL", Type = "SuperDead", SelfWeight = 0, Status = "not checked" });
             patterns.Add(new PatternSpec { Name = "LIVE", Type = "Live", SelfWeight = 0, Status = "not checked" });
+            mapRows.Add(new MapRow { Symbol = "D", Description = "Dead load (self weight, superimposed dead, walls)", Patterns = "DEAD, SDL, WALL" });
+            mapRows.Add(new MapRow { Symbol = "F", Description = "Load due to fluids", Patterns = "" });
+            mapRows.Add(new MapRow { Symbol = "H", Description = "Lateral earth / soil pressure load", Patterns = "" });
+            mapRows.Add(new MapRow { Symbol = "L", Description = "Live load", Patterns = "LIVE" });
+            mapRows.Add(new MapRow { Symbol = "Lr", Description = "Roof live load", Patterns = "" });
+            mapRows.Add(new MapRow { Symbol = "R", Description = "Rain load", Patterns = "" });
+            mapRows.Add(new MapRow { Symbol = "T", Description = "Self-straining load (temperature, shrinkage, etc.)", Patterns = "" });
+            mapRows.Add(new MapRow { Symbol = "W", Description = "Wind load (each name = separate set)", Patterns = "" });
+            mapRows.Add(new MapRow { Symbol = "E", Description = "Earthquake load effect (each name = separate set)", Patterns = "" });
+            MapGrid.ItemsSource = mapRows;
+            ComboGrid.ItemsSource = comboRows;
             Log("INFO", "Ready. Press 'Detect / Connect ETABS'.");
             etabs.Detect();
             ShowStatus();
@@ -245,5 +258,87 @@ namespace BnbcUltimatePro
             }
             LoadGrid.Items.Refresh();
         }
+
+        // ---------- load combinations ----------
+        Dictionary<string, List<string>> ReadMap()
+        {
+            var map = new Dictionary<string, List<string>>();
+            foreach (var r in mapRows)
+            {
+                var names = (r.Patterns ?? "").Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
+                    .Select(x => x.Trim()).Where(x => x.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+                map[r.Symbol] = names;
+            }
+            return map;
+        }
+
+        void ComboPreview_Click(object sender, RoutedEventArgs e)
+        {
+            MapGrid.CommitEdit(DataGridEditingUnit.Row, true);
+            var o = new ComboOptions
+            {
+                Uls = ChkUls.IsChecked == true, Asd = ChkAsd.IsChecked == true, PlusMinus = ChkPm.IsChecked == true,
+                LiveFactorHalf = ChkL05.IsChecked == true, Wind13 = Chk13W.IsChecked == true
+            };
+            if (!o.Uls && !o.Asd) { Log("ERROR", "Select at least one method (strength or allowable stress)."); return; }
+            var map = ReadMap();
+            if (map["D"].Count == 0) { Log("ERROR", "Dead load (D) has no ETABS load name. No combination can be made."); return; }
+            var rows = CombinationGenerator.Generate(o, map);
+            comboRows.Clear();
+            List<string> cases = null, existing = null;
+            if (etabs.HasModel)
+            {
+                try { cases = etabs.GetLoadCaseNames(); existing = etabs.GetComboNames(); }
+                catch (Exception ex) { Log("WARN", "Could not read ETABS cases/combinations: " + (ex.InnerException ?? ex).Message); }
+            }
+            foreach (var r in rows)
+            {
+                if (!etabs.HasModel) r.Status = "not checked (connect ETABS)";
+                else if (cases == null || existing == null) r.Status = "NEW - cases not verified";
+                else
+                {
+                    var missing = r.Items.Select(i => i.Key).Distinct().Where(n => !cases.Contains(n, StringComparer.OrdinalIgnoreCase)).ToList();
+                    if (missing.Count > 0) r.Status = "MISSING CASE: " + string.Join(",", missing);
+                    else if (existing.Contains(r.Name, StringComparer.OrdinalIgnoreCase)) r.Status = "EXISTS - will skip";
+                    else r.Status = "NEW - will create";
+                }
+                comboRows.Add(r);
+            }
+            if (rows.Count == 0) Log("WARN", "No combinations generated. Required loads (for example W or E) are not mapped.");
+            else Log("INFO", rows.Count + " combination(s) generated. Check each one before creating.");
+            foreach (var sym in new[] { "W", "E" })
+                if (map[sym].Count == 0) Log("WARN", "No ETABS name for " + sym + ": combinations that need " + sym + " were not generated.");
+        }
+
+        void ComboCreate_Click(object sender, RoutedEventArgs e)
+        {
+            if (!EnsureModel()) return;
+            ComboPreview_Click(null, null);
+            var todo = comboRows.Where(c => c.Status != null && c.Status.StartsWith("NEW")).ToList();
+            var blocked = comboRows.Where(c => c.Status != null && c.Status.StartsWith("MISSING")).ToList();
+            if (blocked.Count > 0) Log("ERROR", blocked.Count + " combination(s) use load names that do not exist in ETABS and will NOT be created.");
+            if (todo.Count == 0) { Log("INFO", "Nothing to create."); return; }
+            var msg = "Create " + todo.Count + " load combination(s) in ETABS?\n\nFirst items:\n" + string.Join("\n", todo.Take(8).Select(c => c.Name + ": " + c.Definition));
+            if (MessageBox.Show(msg, "Confirm", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
+            foreach (var c in todo)
+            {
+                try
+                {
+                    int ret = etabs.AddCombo(c.Name, c.Items);
+                    c.Status = ret == 0 ? "CREATED" : "FAILED (code " + ret + ")";
+                    if (ret != 0) Log("ERROR", c.Name + ": " + c.Status);
+                }
+                catch (Exception ex) { c.Status = "FAILED"; Log("ERROR", c.Name + ": " + (ex.InnerException ?? ex).Message); }
+            }
+            ComboGrid.Items.Refresh();
+            Log("INFO", "Done: " + todo.Count(c => c.Status == "CREATED") + " created, " + todo.Count(c => c.Status != "CREATED") + " failed.");
+        }
+    }
+
+    public class MapRow
+    {
+        public string Symbol { get; set; }
+        public string Description { get; set; }
+        public string Patterns { get; set; }
     }
 }

@@ -132,5 +132,50 @@ namespace BnbcUltimatePro
             var val = Enum.Parse(enumT, type);
             return (int)lpI.GetMethod("Add").Invoke(lp, new object[] { name, val, selfWeight, true });
         }
+
+        List<string> NameList(object target, Type iface)
+        {
+            var m = iface.GetMethod("GetNameList", new Type[] { typeof(int).MakeByRefType(), typeof(string[]).MakeByRefType() });
+            if (m == null) return null;
+            var args = new object[] { 0, null };
+            int ret = (int)m.Invoke(target, args);
+            if (ret != 0) return null;
+            var names = args[1] as string[];
+            return names == null ? new List<string>() : names.ToList();
+        }
+
+        /// <summary>Load case names (null if the list could not be read).</summary>
+        public List<string> GetLoadCaseNames()
+        {
+            var lc = modelI.GetProperty("LoadCases").GetValue(model, null);
+            return NameList(lc, asm.GetType("ETABSv1.cLoadCases", true));
+        }
+
+        public List<string> GetComboNames()
+        {
+            var rc = modelI.GetProperty("RespCombo").GetValue(model, null);
+            return NameList(rc, asm.GetType("ETABSv1.cCombo", true)) ?? new List<string>();
+        }
+
+        public int AddCombo(string name, List<KeyValuePair<string, double>> items)
+        {
+            var rc = modelI.GetProperty("RespCombo").GetValue(model, null);
+            var cI = asm.GetType("ETABSv1.cCombo", true);
+            var enumT = asm.GetType("ETABSv1.eCNameType", true);
+            int ret = (int)cI.GetMethod("Add", new Type[] { typeof(string), typeof(int) }).Invoke(rc, new object[] { name, 0 });
+            if (ret != 0) return ret;
+            var setM = cI.GetMethods().First(m => m.Name == "SetCaseList");
+            foreach (var it in items)
+            {
+                var args = new object[] { name, Enum.ToObject(enumT, 0), it.Key, it.Value };
+                int r = (int)setM.Invoke(rc, args);
+                if (r != 0)
+                {
+                    try { cI.GetMethod("Delete", new Type[] { typeof(string) }).Invoke(rc, new object[] { name }); } catch { }
+                    return r;
+                }
+            }
+            return 0;
+        }
     }
 }

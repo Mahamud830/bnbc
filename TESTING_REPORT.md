@@ -1,12 +1,22 @@
-# Testing Report - MVP 0.1
+# Testing Report
 
-| Test | Status |
+## Verified on the user's PC (ETABS 22.5.0, MVP 0.1)
+- Installer installs and the app launches
+- ETABS 22 auto-detect and connect
+- Reading the ETABS load pattern list
+- Creating a load pattern (WALL) and duplicate skip
+- Project save / load
+- Z lookup for Dhaka (0.20) and soil SC parameters
+
+## Version 0.2 - Load Combinations (NOT yet tested in ETABS)
+| Item | Status |
 |---|---|
-| Source compiles on Windows | UNTESTED by Claude (no Windows/.NET here). GitHub build will verify. |
-| Data tables load correctly (Z towns=66, soil spectrum) | Automated in GitHub workflow (self-test) |
-| Installer builds | Automated in GitHub workflow |
-| Silent install + launch | Automated in GitHub workflow |
-| ETABS 22 connection | UNTESTED - needs user's ETABS 22 |
-| Load pattern creation / duplicate check | UNTESTED - needs ETABS 22 |
-| Table values vs BNBC PDF | Extracted by script from PDF p.618-619; user spot-check recommended |
-| Load combinations, wind, wall loads, checker, reactions, PDF/Excel export | NOT IMPLEMENTED yet |
+| Combination formulas vs BNBC 2020 Sec 2.7.2.1 (p.687) and 2.7.3.1 (p.688) | Read from PDF; strength page checked visually |
+| Generator logic (13 strength / 15 allowable-stress for the test mapping) | Automatic test in GitHub build |
+| Creating combinations in ETABS (RespCombo API) | UNTESTED - needs user ETABS 22 |
+| Missing-case check and duplicate-name skip | UNTESTED |
+
+## Not generated / not implemented
+- Flood and tidal-surge combinations (Fa)
+- Ev inside E (user supplies E)
+- Wind, wall loads, checker, reactions, PDF/Excel

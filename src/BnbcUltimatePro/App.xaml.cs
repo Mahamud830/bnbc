@@ -32,6 +32,20 @@ namespace BnbcUltimatePro
             ok &= DataStore.Soils.Count == 5;
             var sc = DataStore.Soils.FirstOrDefault(s => s.Name == "SC");
             ok &= sc != null && Math.Abs(sc.S - 1.15) < 1e-9 && Math.Abs(sc.TC - 0.60) < 1e-9;
+            var map = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<string>>
+            {
+                {"D", new System.Collections.Generic.List<string>{"DEAD","SDL"}}, {"F", new System.Collections.Generic.List<string>()},
+                {"H", new System.Collections.Generic.List<string>()}, {"L", new System.Collections.Generic.List<string>{"LIVE"}},
+                {"Lr", new System.Collections.Generic.List<string>()}, {"R", new System.Collections.Generic.List<string>()},
+                {"T", new System.Collections.Generic.List<string>()}, {"W", new System.Collections.Generic.List<string>{"WX"}},
+                {"E", new System.Collections.Generic.List<string>{"EX"}}
+            };
+            var u = CombinationGenerator.Generate(new ComboOptions { Uls = true, PlusMinus = true }, map);
+            var a = CombinationGenerator.Generate(new ComboOptions { Asd = true, PlusMinus = true }, map);
+            ok &= u.Count == 13 && a.Count == 15;
+            ok &= a.Any(r => r.Items.Any(i => i.Key == "WX" && Math.Abs(i.Value - 0.75) < 1e-9));
+            ok &= a.Any(r => r.Items.Any(i => i.Key == "EX" && Math.Abs(i.Value + 0.525) < 1e-9));
+            ok &= u.Any(r => r.Name.StartsWith("ULS3") && r.Items.Any(i => i.Key == "WX" && Math.Abs(i.Value - 0.8) < 1e-9));
             return ok;
         }
     }
