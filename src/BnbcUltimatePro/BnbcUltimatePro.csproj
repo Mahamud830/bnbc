@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <LangVersion>10.0</LangVersion>
+    <PlatformTarget>x64</PlatformTarget>
+    <RootNamespace>BnbcUltimatePro</RootNamespace>
+    <AssemblyName>BnbcUltimatePro</AssemblyName>
+    <Version>0.1.0</Version>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System.Runtime.Serialization" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+    <EmbeddedResource Include="Data\seismic_towns.csv" LogicalName="seismic_towns.csv" />
+    <EmbeddedResource Include="Data\soil_spectrum.csv" LogicalName="soil_spectrum.csv" />
+  </ItemGroup>
+</Project>
