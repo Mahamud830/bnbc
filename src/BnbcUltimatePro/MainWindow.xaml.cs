@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -17,11 +18,12 @@ namespace BnbcUltimatePro
         readonly EtabsConnector etabs = new EtabsConnector();
         readonly ObservableCollection<string> log = new ObservableCollection<string>();
         readonly ObservableCollection<PatternSpec> patterns = new ObservableCollection<PatternSpec>();
-        readonly string[] pageNames = { "PageDashboard", "PageProject", "PageSeismic", "PageLoads", "PageCombos" };
+        readonly string[] pageNames = { "PageDashboard", "PageProject", "PageSeismic", "PageLoads", "PageCombos", "PageFloors" };
         static readonly string[] PatternTypes = { "Dead", "SuperDead", "Live", "ReduceLive", "RoofLive", "Quake", "Wind", "Snow", "Other" };
         bool loading;
         readonly ObservableCollection<MapRow> mapRows = new ObservableCollection<MapRow>();
         readonly ObservableCollection<ComboRow> comboRows = new ObservableCollection<ComboRow>();
+        readonly ObservableCollection<FloorRow> floors = new ObservableCollection<FloorRow>();
 
         public MainWindow()
         {
@@ -47,6 +49,13 @@ namespace BnbcUltimatePro
             mapRows.Add(new MapRow { Symbol = "E", Description = "Earthquake load effect (each name = separate set)", Patterns = "" });
             MapGrid.ItemsSource = mapRows;
             ComboGrid.ItemsSource = comboRows;
+            ((DataGridComboBoxColumn)FloorGrid.Columns[1]).ItemsSource = DataStore.Lives.Select(l => l.Name).ToList();
+            FloorGrid.ItemsSource = floors;
+            FloorGrid.CellEditEnding += (s2, e2) => Dispatcher.BeginInvoke(new Action(() => FloorGrid_SelectionChanged(null, null)));
+            CmbWallMat.ItemsSource = WallCalc.Materials;
+            CmbWallMat.SelectedIndex = 0;
+            TxtGamma.Text = "18.9";
+            TxtFinish.Text = "0"; TxtFaces.Text = "0"; TxtOpen.Text = "0";
             Log("INFO", "Ready. Press 'Detect / Connect ETABS'.");
             etabs.Detect();
             ShowStatus();
@@ -294,13 +303,13 @@ namespace BnbcUltimatePro
             foreach (var r in rows)
             {
                 if (!etabs.HasModel) r.Status = "not checked (connect ETABS)";
-                else if (cases == null || existing == null) r.Status = "NEW - cases not verified";
+                else if ((existing != null && existing.Contains(r.Name, StringComparer.OrdinalIgnoreCase)) || etabs.ComboExists(r.Name))
+                    r.Status = "EXISTS - will skip";
+                else if (cases == null) r.Status = "NEW - cases not verified";
                 else
                 {
                     var missing = r.Items.Select(i => i.Key).Distinct().Where(n => !cases.Contains(n, StringComparer.OrdinalIgnoreCase)).ToList();
-                    if (missing.Count > 0) r.Status = "MISSING CASE: " + string.Join(",", missing);
-                    else if (existing.Contains(r.Name, StringComparer.OrdinalIgnoreCase)) r.Status = "EXISTS - will skip";
-                    else r.Status = "NEW - will create";
+                    r.Status = missing.Count > 0 ? "MISSING CASE: " + string.Join(",", missing) : "NEW - will create";
                 }
                 comboRows.Add(r);
             }
@@ -325,13 +334,137 @@ namespace BnbcUltimatePro
                 try
                 {
                     int ret = etabs.AddCombo(c.Name, c.Items);
-                    c.Status = ret == 0 ? "CREATED" : "FAILED (code " + ret + ")";
-                    if (ret != 0) Log("ERROR", c.Name + ": " + c.Status);
+                    if (ret == 0) c.Status = "CREATED";
+                    else if (etabs.ComboExists(c.Name)) { c.Status = "EXISTS - already in ETABS (code " + ret + ")"; Log("WARN", c.Name + ": already exists in ETABS, left unchanged."); }
+                    else { c.Status = "FAILED (code " + ret + ")"; Log("ERROR", c.Name + ": " + c.Status); }
                 }
                 catch (Exception ex) { c.Status = "FAILED"; Log("ERROR", c.Name + ": " + (ex.InnerException ?? ex).Message); }
             }
             ComboGrid.Items.Refresh();
-            Log("INFO", "Done: " + todo.Count(c => c.Status == "CREATED") + " created, " + todo.Count(c => c.Status != "CREATED") + " failed.");
+            Log("INFO", "Done: " + todo.Count(c => c.Status == "CREATED") + " created, " + todo.Count(c => c.Status.StartsWith("EXISTS")) + " already existed, " + todo.Count(c => c.Status.StartsWith("FAILED")) + " failed.");
+        }
+
+        // ---------- floor live loads ----------
+        void AddFloor_Click(object sender, RoutedEventArgs e) { floors.Add(new FloorRow { Floor = "Story" + (floors.Count + 1) }); }
+
+        void ReadStories_Click(object sender, RoutedEventArgs e)
+        {
+            if (!EnsureModel()) return;
+            try
+            {
+                var names = etabs.GetStoryNames();
+                if (names == null || names.Count == 0) { Log("ERROR", "Could not read stories from ETABS. Add floors by hand."); return; }
+                foreach (var n in names)
+                    if (!floors.Any(f => string.Equals(f.Floor, n, StringComparison.OrdinalIgnoreCase)))
+                        floors.Add(new FloorRow { Floor = n });
+                Log("INFO", "Stories read from ETABS: " + string.Join(", ", names));
+            }
+            catch (Exception ex) { Log("ERROR", "Read stories failed: " + (ex.InnerException ?? ex).Message); }
+        }
+
+        void FloorGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            var f = FloorGrid.SelectedItem as FloorRow;
+            var row = f == null ? null : DataStore.Lives.FirstOrDefault(l => l.Name == f.Occupancy);
+            if (row == null) { TxtLiveNote.Text = ""; return; }
+            var notes = (row.Notes ?? "").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(n => DataStore.LiveNotes.ContainsKey(n.Trim()) ? "Note " + n.Trim() + ": " + DataStore.LiveNotes[n.Trim()] : "").Where(x => x.Length > 0).ToList();
+            TxtLiveNote.Text = "Source: BNBC 2020 Table 6.2.3 (PDF p." + row.Page + "). " + DataStore.LiveGeneralNote + (notes.Count > 0 ? "\n" + string.Join("\n", notes) : "");
+        }
+
+        void AssignLive_Click(object sender, RoutedEventArgs e)
+        {
+            FloorGrid.CommitEdit(DataGridEditingUnit.Row, true);
+            if (!EnsureModel()) return;
+            var f = FloorGrid.SelectedItem as FloorRow;
+            var row = f == null ? null : DataStore.Lives.FirstOrDefault(l => l.Name == f.Occupancy);
+            if (row == null) { Log("ERROR", "Select a floor row that has an occupancy chosen."); return; }
+            string pat = TxtLivePat.Text.Trim();
+            try
+            {
+                if (!etabs.GetLoadPatternNames().Contains(pat, StringComparer.OrdinalIgnoreCase)) { Log("ERROR", "Load pattern '" + pat + "' does not exist in ETABS."); return; }
+                int areas, frames; etabs.GetSelectionCounts(out areas, out frames);
+                if (areas == 0) { Log("ERROR", "No slabs (area objects) are selected in ETABS."); return; }
+                var msg = "Assign " + row.LL.ToString("0.00", CultureInfo.InvariantCulture) + " kN/m2 (" + row.Name + ") from floor '" + f.Floor + "' to " + areas + " selected area object(s) under pattern " + pat + "?\n\nAn existing uniform load of this pattern on them will be replaced.";
+                if (MessageBox.Show(msg, "Confirm", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
+                int ret = etabs.AssignAreaUniform(pat, row.LL);
+                Log(ret == 0 ? "INFO" : "ERROR", ret == 0 ? "Live load " + row.LL.ToString("0.00", CultureInfo.InvariantCulture) + " kN/m2 assigned to " + areas + " area(s), floor " + f.Floor + "." : "Assign failed (code " + ret + "). Is the model unlocked?");
+            }
+            catch (Exception ex) { Log("ERROR", "Assign failed: " + (ex.InnerException ?? ex).Message); }
+        }
+
+        // ---------- wall load ----------
+        bool Num(string text, out double v) { return double.TryParse((text ?? "").Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out v); }
+
+        bool TryWall(out double w, out string detail)
+        {
+            w = 0; detail = "";
+            var mat = CmbWallMat.SelectedItem as WallMaterial;
+            double g, t, h, fin, faces, op;
+            if (mat == null) { detail = "INCOMPLETE: choose a wall material."; return false; }
+            if (!double.IsNaN(mat.Gamma)) { TxtGamma.Text = mat.Gamma.ToString("0.0##", CultureInfo.InvariantCulture); TxtGamma.IsReadOnly = true; }
+            else TxtGamma.IsReadOnly = false;
+            if (!Num(TxtGamma.Text, out g) || g <= 0) { detail = "INCOMPLETE: unit weight."; return false; }
+            if (!Num(TxtWallT.Text, out t) || t <= 0) { detail = "INCOMPLETE: wall thickness (m)."; return false; }
+            if (!Num(TxtWallH.Text, out h) || h <= 0) { detail = "INCOMPLETE: wall height (m)."; return false; }
+            if (!Num(TxtFinish.Text, out fin) || fin < 0) { detail = "INCOMPLETE: finish load (enter 0 if none)."; return false; }
+            if (!Num(TxtFaces.Text, out faces) || (faces != 0 && faces != 1 && faces != 2)) { detail = "INCOMPLETE: faces must be 0, 1 or 2."; return false; }
+            if (!Num(TxtOpen.Text, out op) || op < 0 || op >= 100) { detail = "INCOMPLETE: openings % (0 to <100)."; return false; }
+            w = WallCalc.LineLoad(g, t, h, fin, (int)faces, op / 100.0);
+            detail = string.Format(CultureInfo.InvariantCulture,
+                "w = ({0} x {1} + {2} x {3}) x {4} x (1 - {5}) = {6:0.000} kN/m\nUnit weight source: {7}. Finish and openings: user input.",
+                g, t, (int)faces, fin, h, op / 100.0, w, mat.Ref);
+            return true;
+        }
+
+        void Wall_Changed(object sender, RoutedEventArgs e)
+        {
+            if (!IsLoaded) return;
+            double w; string d;
+            TryWall(out w, out d);
+            TxtWallResult.Text = d;
+        }
+
+        void AssignWall_Click(object sender, RoutedEventArgs e)
+        {
+            double w; string d;
+            bool ok = TryWall(out w, out d);
+            TxtWallResult.Text = d;
+            if (!ok) { Log("ERROR", d); return; }
+            if (!EnsureModel()) return;
+            string pat = TxtWallPat.Text.Trim();
+            try
+            {
+                if (!etabs.GetLoadPatternNames().Contains(pat, StringComparer.OrdinalIgnoreCase)) { Log("ERROR", "Load pattern '" + pat + "' does not exist in ETABS."); return; }
+                int areas, frames; etabs.GetSelectionCounts(out areas, out frames);
+                if (frames == 0) { Log("ERROR", "No beams (frame objects) are selected in ETABS."); return; }
+                var msg = "Assign " + w.ToString("0.000", CultureInfo.InvariantCulture) + " kN/m to " + frames + " selected frame object(s) under pattern " + pat + "?\n\nAn existing distributed load of this pattern on them will be replaced.";
+                if (MessageBox.Show(msg, "Confirm", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
+                int ret = etabs.AssignFrameLine(pat, w);
+                Log(ret == 0 ? "INFO" : "ERROR", ret == 0 ? "Wall load " + w.ToString("0.000", CultureInfo.InvariantCulture) + " kN/m assigned to " + frames + " beam(s)." : "Assign failed (code " + ret + "). Is the model unlocked?");
+            }
+            catch (Exception ex) { Log("ERROR", "Assign failed: " + (ex.InnerException ?? ex).Message); }
+        }
+    }
+
+    public class FloorRow : INotifyPropertyChanged
+    {
+        public event PropertyChangedEventHandler PropertyChanged;
+        void Raise(string n) { var h = PropertyChanged; if (h != null) h(this, new PropertyChangedEventArgs(n)); }
+        public string Floor { get; set; }
+        string occ;
+        public string Occupancy { get { return occ; } set { occ = value; Raise("Occupancy"); Raise("LL"); Raise("Notes"); } }
+        public string LL
+        {
+            get
+            {
+                var r = DataStore.Lives.FirstOrDefault(l => l.Name == occ);
+                return r == null ? "" : r.LL.ToString("0.00", CultureInfo.InvariantCulture);
+            }
+        }
+        public string Notes
+        {
+            get { var r = DataStore.Lives.FirstOrDefault(l => l.Name == occ); return r == null ? "" : r.Notes; }
         }
     }
 

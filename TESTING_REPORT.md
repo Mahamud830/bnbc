@@ -13,8 +13,21 @@
 |---|---|
 | Combination formulas vs BNBC 2020 Sec 2.7.2.1 (p.687) and 2.7.3.1 (p.688) | Read from PDF; strength page checked visually |
 | Generator logic (13 strength / 15 allowable-stress for the test mapping) | Automatic test in GitHub build |
-| Creating combinations in ETABS (RespCombo API) | UNTESTED - needs user ETABS 22 |
-| Missing-case check and duplicate-name skip | UNTESTED |
+| Creating combinations in ETABS (RespCombo API) | VERIFIED by user screenshot: 13 combinations ULS1..ULS7_2 exist; ULS5_1 = 1.2 Dead + 1.2 SDL + 1.2 WALL + 1 EX + 1 Live (matches Eq.5) |
+| Status text after a second Create click said FAILED (code 1) | Cause: existing-name check was unreliable, Add rejected the duplicate name. Fixed in v0.2.1 (checks by reading the combo's case list) |
+| Missing-case check | UNTESTED |
+| Duplicate-name skip (v0.2.1 fix) | UNTESTED |
+| Remaining combos (sign of -EX, W combos, ULS6/7) factor check in ETABS | Only ULS5_1 checked so far |
+
+## Version 0.3 - Floor live loads and Wall loads (NOT yet tested in ETABS)
+| Item | Status |
+|---|---|
+| Live load table (64 rows, BNBC Table 6.2.3, PDF p.536-541) | Typed from PDF text extraction; automatic count/value test in GitHub build; user spot-check recommended |
+| Wall unit weights (Table 6.2.1) and line load formula | Automatic formula test in GitHub build |
+| Read stories from ETABS | UNTESTED |
+| Assign live load to selected slabs (AreaObj.SetLoadUniform) | UNTESTED |
+| Assign wall load to selected beams (FrameObj.SetLoadDistributed) | UNTESTED |
+| Live load reduction (Sec 2.3.13), concentrated loads, SDL table 6.2.2 | NOT implemented |
 
 ## Not generated / not implemented
 - Flood and tidal-surge combinations (Fa)

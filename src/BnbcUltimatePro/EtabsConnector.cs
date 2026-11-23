@@ -177,5 +177,78 @@ namespace BnbcUltimatePro
             }
             return 0;
         }
+
+        /// <summary>True if a combination with this name already exists (checked by reading its case list).</summary>
+        public bool ComboExists(string name)
+        {
+            try
+            {
+                var rc = modelI.GetProperty("RespCombo").GetValue(model, null);
+                var cI = asm.GetType("ETABSv1.cCombo", true);
+                var m = cI.GetMethods().FirstOrDefault(x => x.Name == "GetCaseList");
+                if (m == null) return false;
+                var args = new object[] { name, 0, null, null, null };
+                int ret = (int)m.Invoke(rc, args);
+                return ret == 0 && (int)args[1] > 0;
+            }
+            catch { return false; }
+        }
+
+        public List<string> GetStoryNames()
+        {
+            var st = modelI.GetProperty("Story").GetValue(model, null);
+            return NameList(st, asm.GetType("ETABSv1.cStory", true));
+        }
+
+        /// <summary>Counts the objects currently selected in ETABS (areas = type 5, frames = type 2).</summary>
+        public void GetSelectionCounts(out int areas, out int frames)
+        {
+            areas = 0; frames = 0;
+            var sel = modelI.GetProperty("SelectObj").GetValue(model, null);
+            var sI = asm.GetType("ETABSv1.cSelect", true);
+            var args = new object[] { 0, null, null };
+            int ret = (int)sI.GetMethod("GetSelected").Invoke(sel, args);
+            if (ret != 0) throw new Exception("GetSelected returned " + ret);
+            var types = args[1] as int[];
+            if (types == null) return;
+            foreach (var t in types) { if (t == 5) areas++; else if (t == 2) frames++; }
+        }
+
+        object GetUnits() { return modelI.GetMethod("GetPresentUnits").Invoke(model, null); }
+        int SetUnits(object u) { return (int)modelI.GetMethod("SetPresentUnits").Invoke(model, new object[] { u }); }
+
+        /// <summary>Uniform gravity load (kN/m2) on the objects selected in ETABS. Replaces an existing load of that pattern.</summary>
+        public int AssignAreaUniform(string pattern, double kNperM2)
+        {
+            var unitsT = asm.GetType("ETABSv1.eUnits", true);
+            var itemT = asm.GetType("ETABSv1.eItemType", true);
+            var prev = GetUnits();
+            SetUnits(Enum.Parse(unitsT, "kN_m_C"));
+            try
+            {
+                var ao = modelI.GetProperty("AreaObj").GetValue(model, null);
+                var aI = asm.GetType("ETABSv1.cAreaObj", true);
+                var m = aI.GetMethods().First(x => x.Name == "SetLoadUniform" && x.GetParameters().Length == 7);
+                return (int)m.Invoke(ao, new object[] { "", pattern, kNperM2, 10, true, "Global", Enum.Parse(itemT, "SelectedObjects") });
+            }
+            finally { SetUnits(prev); }
+        }
+
+        /// <summary>Uniform gravity line load (kN/m) on the frame objects selected in ETABS. Replaces an existing load of that pattern.</summary>
+        public int AssignFrameLine(string pattern, double kNperM)
+        {
+            var unitsT = asm.GetType("ETABSv1.eUnits", true);
+            var itemT = asm.GetType("ETABSv1.eItemType", true);
+            var prev = GetUnits();
+            SetUnits(Enum.Parse(unitsT, "kN_m_C"));
+            try
+            {
+                var fo = modelI.GetProperty("FrameObj").GetValue(model, null);
+                var fI = asm.GetType("ETABSv1.cFrameObj", true);
+                var m = fI.GetMethods().First(x => x.Name == "SetLoadDistributed" && x.GetParameters().Length == 12);
+                return (int)m.Invoke(fo, new object[] { "", pattern, 1, 10, 0.0, 1.0, kNperM, kNperM, "Global", true, true, Enum.Parse(itemT, "SelectedObjects") });
+            }
+            finally { SetUnits(prev); }
+        }
     }
 }

@@ -48,6 +48,7 @@
         <Button Style="{StaticResource NavBtn}" Content="Seismic Parameters" Tag="PageSeismic" Click="Nav_Click"/>
         <Button Style="{StaticResource NavBtn}" Content="Load Patterns" Tag="PageLoads" Click="Nav_Click"/>
         <Button Style="{StaticResource NavBtn}" Content="Load Combinations" Tag="PageCombos" Click="Nav_Click"/>
+        <Button Style="{StaticResource NavBtn}" Content="Floor &amp; Wall Loads" Tag="PageFloors" Click="Nav_Click"/>
         <TextBlock Text="BNBC 2020 / ETABS 22" Foreground="#6B7FA8" FontSize="11" Margin="18,30,0,0"/>
       </StackPanel>
     </Border>
@@ -163,6 +164,49 @@
                 <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="190"/>
               </DataGrid.Columns>
             </DataGrid>
+          </StackPanel></ScrollViewer>
+        </Border>
+
+        <!-- Floor and wall loads -->
+        <Border x:Name="PageFloors" Background="{StaticResource Card}" CornerRadius="6" Padding="20" Visibility="Collapsed">
+          <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel>
+            <TextBlock Text="Floor Live Loads (BNBC Table 6.2.3)" FontSize="22" FontWeight="Bold"/>
+            <TextBlock Foreground="#9FB4D9" TextWrapping="Wrap" Margin="0,6,0,8"
+                       Text="1) Add floors (or read the stories from ETABS). 2) Choose the occupancy of each floor: the minimum uniform live load comes from the table. 3) In ETABS select the slabs of that floor, pick the row here and press Assign. An existing load of that pattern on those slabs is replaced, so nothing is doubled."/>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+              <Button Style="{StaticResource ActBtn}" Content="Read stories from ETABS" Click="ReadStories_Click"/>
+              <Button Style="{StaticResource ActBtn}" Content="Add floor" Click="AddFloor_Click" Background="#334A7A"/>
+            </StackPanel>
+            <DataGrid x:Name="FloorGrid" AutoGenerateColumns="False" CanUserAddRows="False" HeadersVisibility="Column" Height="190" SelectionChanged="FloorGrid_SelectionChanged">
+              <DataGrid.Columns>
+                <DataGridTextColumn Header="Floor / Story" Binding="{Binding Floor}" Width="130"/>
+                <DataGridComboBoxColumn Header="Occupancy or use (Table 6.2.3)" SelectedItemBinding="{Binding Occupancy, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
+                <DataGridTextColumn Header="LL kN/m2" Binding="{Binding LL}" IsReadOnly="True" Width="80"/>
+                <DataGridTextColumn Header="Notes" Binding="{Binding Notes}" IsReadOnly="True" Width="70"/>
+              </DataGrid.Columns>
+            </DataGrid>
+            <TextBlock x:Name="TxtLiveNote" Foreground="#FBBF24" TextWrapping="Wrap" Margin="0,6,0,0"/>
+            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+              <TextBlock Text="ETABS live load pattern:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+              <TextBox x:Name="TxtLivePat" Text="LIVE" Width="100"/>
+              <Button Style="{StaticResource ActBtn}" Content="Assign selected row to selected slabs" Click="AssignLive_Click" Background="#0891B2" Margin="12,0,0,0"/>
+            </StackPanel>
+            <TextBlock Foreground="#9FB4D9" TextWrapping="Wrap" Margin="0,6,0,0" Text="Not done here: live load reduction (Sec 2.3.13) and concentrated loads. Corridors above the first floor follow the occupancy they serve, so choose that occupancy's own row."/>
+
+            <TextBlock Text="Wall Load Generator" FontSize="22" FontWeight="Bold" Margin="0,26,0,0"/>
+            <TextBlock Foreground="#9FB4D9" TextWrapping="Wrap" Margin="0,6,0,0" Text="Line load on a beam: w = (unit weight x thickness + faces x finish) x height x (1 - openings). Unit weights come from Table 6.2.1. Finish and openings are your inputs; nothing is assumed."/>
+            <StackPanel MaxWidth="460" HorizontalAlignment="Left">
+              <TextBlock Text="Wall material" Style="{StaticResource Lbl}"/><ComboBox x:Name="CmbWallMat" SelectionChanged="Wall_Changed"/>
+              <TextBlock Text="Unit weight (kN/m3)" Style="{StaticResource Lbl}"/><TextBox x:Name="TxtGamma" LostFocus="Wall_Changed"/>
+              <TextBlock Text="Wall thickness (m), for example 0.125" Style="{StaticResource Lbl}"/><TextBox x:Name="TxtWallT" LostFocus="Wall_Changed"/>
+              <TextBlock Text="Wall height (m) = storey height minus beam depth" Style="{StaticResource Lbl}"/><TextBox x:Name="TxtWallH" LostFocus="Wall_Changed"/>
+              <TextBlock Text="Finish load per wall face (kN/m2), 0 if none" Style="{StaticResource Lbl}"/><TextBox x:Name="TxtFinish" LostFocus="Wall_Changed"/>
+              <TextBlock Text="Faces with finish (0, 1 or 2)" Style="{StaticResource Lbl}"/><TextBox x:Name="TxtFaces" LostFocus="Wall_Changed"/>
+              <TextBlock Text="Openings reduction (%), 0 if none" Style="{StaticResource Lbl}"/><TextBox x:Name="TxtOpen" LostFocus="Wall_Changed"/>
+              <TextBlock Text="ETABS wall pattern" Style="{StaticResource Lbl}"/><TextBox x:Name="TxtWallPat" Text="WALL"/>
+            </StackPanel>
+            <TextBlock x:Name="TxtWallResult" FontFamily="Consolas" TextWrapping="Wrap" Margin="0,12,0,0"/>
+            <Button Style="{StaticResource ActBtn}" Content="Assign to selected beams" Click="AssignWall_Click" Background="#0891B2" Margin="0,10,0,0" HorizontalAlignment="Left"/>
           </StackPanel></ScrollViewer>
         </Border>
       </Grid>
