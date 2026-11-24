@@ -49,6 +49,7 @@
         <Button Style="{StaticResource NavBtn}" Content="Load Patterns" Tag="PageLoads" Click="Nav_Click"/>
         <Button Style="{StaticResource NavBtn}" Content="Load Combinations" Tag="PageCombos" Click="Nav_Click"/>
         <Button Style="{StaticResource NavBtn}" Content="Floor &amp; Wall Loads" Tag="PageFloors" Click="Nav_Click"/>
+        <Button Style="{StaticResource NavBtn}" Content="Foundation Reactions" Tag="PageReact" Click="Nav_Click"/>
         <TextBlock Text="BNBC 2020 / ETABS 22" Foreground="#6B7FA8" FontSize="11" Margin="18,30,0,0"/>
       </StackPanel>
     </Border>
@@ -172,7 +173,7 @@
           <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel>
             <TextBlock Text="Floor Live Loads (BNBC Table 6.2.3)" FontSize="22" FontWeight="Bold"/>
             <TextBlock Foreground="#9FB4D9" TextWrapping="Wrap" Margin="0,6,0,8"
-                       Text="1) Add floors (or read the stories from ETABS). 2) Choose the occupancy of each floor: the minimum uniform live load comes from the table. 3) In ETABS select the slabs of that floor, pick the row here and press Assign. An existing load of that pattern on those slabs is replaced, so nothing is doubled."/>
+                       Text="1) Add floors (or read the stories from ETABS). 2) Select one or more floor rows, search the occupancy below and press Set (or double-click it): the minimum uniform live load comes from the table. 3) In ETABS select the slabs of that floor, pick the row here and press Assign. An existing load of that pattern on those slabs is replaced, so nothing is doubled."/>
             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
               <Button Style="{StaticResource ActBtn}" Content="Read stories from ETABS" Click="ReadStories_Click"/>
               <Button Style="{StaticResource ActBtn}" Content="Add floor" Click="AddFloor_Click" Background="#334A7A"/>
@@ -180,11 +181,15 @@
             <DataGrid x:Name="FloorGrid" AutoGenerateColumns="False" CanUserAddRows="False" HeadersVisibility="Column" Height="190" SelectionChanged="FloorGrid_SelectionChanged">
               <DataGrid.Columns>
                 <DataGridTextColumn Header="Floor / Story" Binding="{Binding Floor}" Width="130"/>
-                <DataGridComboBoxColumn Header="Occupancy or use (Table 6.2.3)" SelectedItemBinding="{Binding Occupancy, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
+                <DataGridTextColumn Header="Occupancy or use (Table 6.2.3)" Binding="{Binding Occupancy, Mode=OneWay}" IsReadOnly="True" Width="*"/>
                 <DataGridTextColumn Header="LL kN/m2" Binding="{Binding LL}" IsReadOnly="True" Width="80"/>
                 <DataGridTextColumn Header="Notes" Binding="{Binding Notes}" IsReadOnly="True" Width="70"/>
               </DataGrid.Columns>
             </DataGrid>
+            <TextBlock Text="Find occupancy: type a word (residential, apartment, office, school, roof, stairs...)" Style="{StaticResource Lbl}"/>
+            <TextBox x:Name="TxtOccFilter" TextChanged="OccFilter_Changed"/>
+            <ListBox x:Name="LstOcc" Height="150" Margin="0,6,0,0" MouseDoubleClick="LstOcc_DoubleClick"/>
+            <Button Style="{StaticResource ActBtn}" Content="Set for selected floor(s)" Click="SetOcc_Click" Margin="0,8,0,0" HorizontalAlignment="Left"/>
             <TextBlock x:Name="TxtLiveNote" Foreground="#FBBF24" TextWrapping="Wrap" Margin="0,6,0,0"/>
             <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
               <TextBlock Text="ETABS live load pattern:" VerticalAlignment="Center" Margin="0,0,8,0"/>
@@ -207,6 +212,34 @@
             </StackPanel>
             <TextBlock x:Name="TxtWallResult" FontFamily="Consolas" TextWrapping="Wrap" Margin="0,12,0,0"/>
             <Button Style="{StaticResource ActBtn}" Content="Assign to selected beams" Click="AssignWall_Click" Background="#0891B2" Margin="0,10,0,0" HorizontalAlignment="Left"/>
+          </StackPanel></ScrollViewer>
+        </Border>
+
+        <!-- Foundation reactions -->
+        <Border x:Name="PageReact" Background="{StaticResource Card}" CornerRadius="6" Padding="20" Visibility="Collapsed">
+          <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel>
+            <TextBlock Text="Foundation Reaction Extractor" FontSize="22" FontWeight="Bold"/>
+            <TextBlock Foreground="#9FB4D9" TextWrapping="Wrap" Margin="0,6,0,8"
+                       Text="1) Run the analysis in ETABS. 2) Select the base support joints in ETABS. 3) Type the combination names below (blank = every ULS* and ASD* combination made by this tool) and press Extract. Values are in kN and kN-m. ETABS sign convention: F3 positive means the support pushes upward."/>
+            <TextBlock Text="Combinations (comma separated, optional)" Style="{StaticResource Lbl}"/>
+            <TextBox x:Name="TxtReactCombos"/>
+            <StackPanel Orientation="Horizontal" Margin="0,10,0,10">
+              <Button Style="{StaticResource ActBtn}" Content="Extract from selected joints" Click="Extract_Click" Background="#0891B2"/>
+              <Button Style="{StaticResource ActBtn}" Content="Export CSV" Click="ExportReact_Click"/>
+            </StackPanel>
+            <TextBlock x:Name="TxtReactSummary" FontFamily="Consolas" TextWrapping="Wrap"/>
+            <DataGrid x:Name="ReactGrid" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True" HeadersVisibility="Column" Height="300" Margin="0,10,0,0">
+              <DataGrid.Columns>
+                <DataGridTextColumn Header="Joint" Binding="{Binding Joint}" Width="70"/>
+                <DataGridTextColumn Header="Combo" Binding="{Binding Case}" Width="100"/>
+                <DataGridTextColumn Header="Fx" Binding="{Binding F1, StringFormat=0.00}" Width="*"/>
+                <DataGridTextColumn Header="Fy" Binding="{Binding F2, StringFormat=0.00}" Width="*"/>
+                <DataGridTextColumn Header="Fz (F3)" Binding="{Binding F3, StringFormat=0.00}" Width="*"/>
+                <DataGridTextColumn Header="Mx" Binding="{Binding M1, StringFormat=0.00}" Width="*"/>
+                <DataGridTextColumn Header="My" Binding="{Binding M2, StringFormat=0.00}" Width="*"/>
+                <DataGridTextColumn Header="Mz" Binding="{Binding M3, StringFormat=0.00}" Width="*"/>
+              </DataGrid.Columns>
+            </DataGrid>
           </StackPanel></ScrollViewer>
         </Border>
       </Grid>

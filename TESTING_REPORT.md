@@ -29,6 +29,13 @@
 | Assign wall load to selected beams (FrameObj.SetLoadDistributed) | UNTESTED |
 | Live load reduction (Sec 2.3.13), concentrated loads, SDL table 6.2.2 | NOT implemented |
 
+## Version 0.4 (NOT yet tested in ETABS)
+| Item | Status |
+|---|---|
+| Occupancy search box (residential rows renamed so "residential" / "apartment" find them) | Automatic row-count test in GitHub build; UI untested |
+| Foundation Reaction Extractor (Results.JointReact for selected joints, CSV export) | UNTESTED - needs analysed model in user ETABS 22 |
+| Sign convention note (F3 positive = upward) | From ETABS convention, confirm on a simple model |
+
 ## Not generated / not implemented
 - Flood and tidal-surge combinations (Fa)
 - Ev inside E (user supplies E)

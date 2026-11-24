@@ -18,12 +18,13 @@ namespace BnbcUltimatePro
         readonly EtabsConnector etabs = new EtabsConnector();
         readonly ObservableCollection<string> log = new ObservableCollection<string>();
         readonly ObservableCollection<PatternSpec> patterns = new ObservableCollection<PatternSpec>();
-        readonly string[] pageNames = { "PageDashboard", "PageProject", "PageSeismic", "PageLoads", "PageCombos", "PageFloors" };
+        readonly string[] pageNames = { "PageDashboard", "PageProject", "PageSeismic", "PageLoads", "PageCombos", "PageFloors", "PageReact" };
         static readonly string[] PatternTypes = { "Dead", "SuperDead", "Live", "ReduceLive", "RoofLive", "Quake", "Wind", "Snow", "Other" };
         bool loading;
         readonly ObservableCollection<MapRow> mapRows = new ObservableCollection<MapRow>();
         readonly ObservableCollection<ComboRow> comboRows = new ObservableCollection<ComboRow>();
         readonly ObservableCollection<FloorRow> floors = new ObservableCollection<FloorRow>();
+        readonly ObservableCollection<EtabsConnector.ReactionRow> reactions = new ObservableCollection<EtabsConnector.ReactionRow>();
 
         public MainWindow()
         {
@@ -49,7 +50,8 @@ namespace BnbcUltimatePro
             mapRows.Add(new MapRow { Symbol = "E", Description = "Earthquake load effect (each name = separate set)", Patterns = "" });
             MapGrid.ItemsSource = mapRows;
             ComboGrid.ItemsSource = comboRows;
-            ((DataGridComboBoxColumn)FloorGrid.Columns[1]).ItemsSource = DataStore.Lives.Select(l => l.Name).ToList();
+            LstOcc.ItemsSource = DataStore.Lives.Select(l => l.Name).ToList();
+            ReactGrid.ItemsSource = reactions;
             FloorGrid.ItemsSource = floors;
             FloorGrid.CellEditEnding += (s2, e2) => Dispatcher.BeginInvoke(new Action(() => FloorGrid_SelectionChanged(null, null)));
             CmbWallMat.ItemsSource = WallCalc.Materials;
@@ -391,6 +393,80 @@ namespace BnbcUltimatePro
                 Log(ret == 0 ? "INFO" : "ERROR", ret == 0 ? "Live load " + row.LL.ToString("0.00", CultureInfo.InvariantCulture) + " kN/m2 assigned to " + areas + " area(s), floor " + f.Floor + "." : "Assign failed (code " + ret + "). Is the model unlocked?");
             }
             catch (Exception ex) { Log("ERROR", "Assign failed: " + (ex.InnerException ?? ex).Message); }
+        }
+
+
+        // ---------- occupancy search ----------
+        void OccFilter_Changed(object sender, TextChangedEventArgs e)
+        {
+            if (!IsLoaded) return;
+            var tokens = (TxtOccFilter.Text ?? "").Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Select(t => t.ToLowerInvariant()).ToList();
+            LstOcc.ItemsSource = DataStore.Lives.Select(l => l.Name)
+                .Where(n => tokens.All(t => n.ToLowerInvariant().Contains(t))).ToList();
+        }
+
+        void SetOcc_Click(object sender, RoutedEventArgs e)
+        {
+            var occ = LstOcc.SelectedItem as string;
+            if (occ == null) { Log("ERROR", "Pick an occupancy from the list first."); return; }
+            var rows = FloorGrid.SelectedItems.Cast<object>().OfType<FloorRow>().ToList();
+            if (rows.Count == 0) { Log("ERROR", "Select one or more floor rows in the table first."); return; }
+            foreach (var r in rows) r.Occupancy = occ;
+            FloorGrid_SelectionChanged(null, null);
+            Log("INFO", "Occupancy set for " + rows.Count + " floor(s): " + occ);
+        }
+
+        void LstOcc_DoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (LstOcc.SelectedItem != null) SetOcc_Click(null, null);
+        }
+
+        // ---------- foundation reactions ----------
+        void Extract_Click(object sender, RoutedEventArgs e)
+        {
+            if (!EnsureModel()) return;
+            try
+            {
+                if (etabs.CountSelected(1) == 0) { Log("ERROR", "No joints are selected in ETABS. Select the base support joints first."); return; }
+                List<string> combos = (TxtReactCombos.Text ?? "").Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
+                    .Select(x => x.Trim()).Where(x => x.Length > 0).ToList();
+                if (combos.Count == 0)
+                    combos = etabs.GetComboNames().Where(n => n.StartsWith("ULS", StringComparison.OrdinalIgnoreCase) || n.StartsWith("ASD", StringComparison.OrdinalIgnoreCase)).ToList();
+                if (combos.Count == 0) { Log("ERROR", "No combinations to use. Create them first or type their names."); return; }
+                int code;
+                var rows = etabs.GetJointReactions(combos, out code);
+                if (code != 0) { Log("ERROR", "ETABS returned code " + code + ". Has the analysis been run, and do these combinations exist?"); return; }
+                reactions.Clear();
+                foreach (var r in rows) reactions.Add(r);
+                var sb = new StringBuilder();
+                sb.AppendLine("Joints: " + rows.Select(r => r.Joint).Distinct().Count() + "   Combinations: " + rows.Select(r => r.Case).Distinct().Count() + "   Rows: " + rows.Count);
+                foreach (var g in rows.GroupBy(r => r.Joint))
+                {
+                    var best = g.OrderByDescending(r => r.F3).First();
+                    sb.AppendLine("Joint " + g.Key + ": max F3 = " + best.F3.ToString("0.00", CultureInfo.InvariantCulture) + " kN (combo " + best.Case + ")");
+                }
+                foreach (var g in rows.GroupBy(r => r.Case))
+                    sb.AppendLine("Total F3, " + g.Key + " = " + g.Sum(r => r.F3).ToString("0.00", CultureInfo.InvariantCulture) + " kN");
+                TxtReactSummary.Text = sb.ToString();
+                Log("INFO", "Reactions extracted: " + rows.Count + " row(s).");
+            }
+            catch (Exception ex) { Log("ERROR", "Extract failed: " + (ex.InnerException ?? ex).Message); }
+        }
+
+        void ExportReact_Click(object sender, RoutedEventArgs e)
+        {
+            if (reactions.Count == 0) { Log("ERROR", "Nothing to export. Extract first."); return; }
+            var d = new SaveFileDialog { Filter = "CSV (*.csv)|*.csv", FileName = "foundation_reactions.csv" };
+            if (d.ShowDialog() != true) return;
+            try
+            {
+                var sb = new StringBuilder("Joint,Combo,Fx_kN,Fy_kN,Fz_kN,Mx_kNm,My_kNm,Mz_kNm\n");
+                foreach (var r in reactions)
+                    sb.AppendLine(string.Join(",", new[] { r.Joint, r.Case }.Concat(new[] { r.F1, r.F2, r.F3, r.M1, r.M2, r.M3 }.Select(v => v.ToString("0.000", CultureInfo.InvariantCulture)))));
+                File.WriteAllText(d.FileName, sb.ToString(), Encoding.UTF8);
+                Log("INFO", "Exported " + d.FileName);
+            }
+            catch (Exception ex) { Log("ERROR", "Export failed: " + ex.Message); }
         }
 
         // ---------- wall load ----------

@@ -51,6 +51,7 @@ namespace BnbcUltimatePro
             ok &= off != null && Math.Abs(off.LL - 2.40) < 1e-9;
             var stack = DataStore.Lives.FirstOrDefault(l => l.Name == "Libraries - Stack rooms");
             ok &= stack != null && Math.Abs(stack.LL - 7.20) < 1e-9 && stack.Notes == "d";
+            ok &= DataStore.Lives.Count(l => l.Name.ToLowerInvariant().Contains("residential")) == 6;
             ok &= Math.Abs(WallCalc.LineLoad(18.9, 0.125, 3.0, 0, 0, 0) - 7.0875) < 1e-9;
             ok &= Math.Abs(WallCalc.LineLoad(18.9, 0.125, 3.0, 0.5, 2, 0.1) - (18.9 * 0.125 + 1.0) * 3.0 * 0.9) < 1e-9;
             return ok;

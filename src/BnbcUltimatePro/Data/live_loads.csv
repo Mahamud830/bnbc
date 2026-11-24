@@ -35,12 +35,12 @@ Office - Offices|2.40||538
 Office - Corridors above first floor|3.80||538
 Penal institutions - Cell blocks|2.00||538
 Penal institutions - Corridors|4.80||538
-Residential dwellings - Uninhabitable attics without storage|0.50||538
-Residential dwellings - Uninhabitable attics with storage|1.00||538
-Residential dwellings - Habitable attics and sleeping areas|1.50||538
-Residential dwellings - All other areas except stairs and balconies|2.00||538
-Hotels and multifamily - Private rooms and corridors serving them|2.00||538
-Hotels and multifamily - Public rooms and corridors serving them|4.80||538
+Residential - Dwellings (one- and two-family) - Uninhabitable attics without storage|0.50||538
+Residential - Dwellings (one- and two-family) - Uninhabitable attics with storage|1.00||538
+Residential - Dwellings (one- and two-family) - Habitable attics and sleeping areas|1.50||538
+Residential - Dwellings (one- and two-family) - All other areas except stairs and balconies|2.00||538
+Residential - Hotels, apartments and multifamily - Private rooms and corridors serving them|2.00||538
+Residential - Hotels, apartments and multifamily - Public rooms and corridors serving them|4.80||538
 Reviewing stands, grandstands and bleachers|4.80|g|538
 Roofs - Ordinary flat roof (roof live load Lr)|1.00|h|539
 Roofs - used for promenade purposes|2.90||539

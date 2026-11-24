@@ -250,5 +250,56 @@ namespace BnbcUltimatePro
             }
             finally { SetUnits(prev); }
         }
+
+        public class ReactionRow { public string Joint { get; set; } public string Case { get; set; } public double F1 { get; set; } public double F2 { get; set; } public double F3 { get; set; } public double M1 { get; set; } public double M2 { get; set; } public double M3 { get; set; } }
+
+        public int CountSelected(int objectType)
+        {
+            var sel = modelI.GetProperty("SelectObj").GetValue(model, null);
+            var sI = asm.GetType("ETABSv1.cSelect", true);
+            var args = new object[] { 0, null, null };
+            int ret = (int)sI.GetMethod("GetSelected").Invoke(sel, args);
+            if (ret != 0) throw new Exception("GetSelected returned " + ret);
+            var types = args[1] as int[];
+            return types == null ? 0 : types.Count(t => t == objectType);
+        }
+
+        /// <summary>Reactions (kN, kN-m) of the joints selected in ETABS for the given combinations. Analysis must have been run.</summary>
+        public List<ReactionRow> GetJointReactions(List<string> combos, out int code)
+        {
+            var rows = new List<ReactionRow>();
+            code = 0;
+            var unitsT = asm.GetType("ETABSv1.eUnits", true);
+            var elmT = asm.GetType("ETABSv1.eItemTypeElm", true);
+            var prev = GetUnits();
+            SetUnits(Enum.Parse(unitsT, "kN_m_C"));
+            try
+            {
+                var res = modelI.GetProperty("Results").GetValue(model, null);
+                var resI = asm.GetType("ETABSv1.cAnalysisResults", true);
+                var setup = resI.GetProperty("Setup").GetValue(res, null);
+                var setupI = asm.GetType("ETABSv1.cAnalysisResultsSetup", true);
+                code = (int)setupI.GetMethod("DeselectAllCasesAndCombosForOutput").Invoke(setup, null);
+                if (code != 0) return rows;
+                var selM = setupI.GetMethod("SetComboSelectedForOutput", new Type[] { typeof(string), typeof(bool) });
+                foreach (var c in combos)
+                {
+                    code = (int)selM.Invoke(setup, new object[] { c, true });
+                    if (code != 0) return rows;
+                }
+                var jr = resI.GetMethods().First(m => m.Name == "JointReact" && m.GetParameters().Length == 14);
+                var args = new object[] { "", Enum.Parse(elmT, "SelectionElm"), 0, null, null, null, null, null, null, null, null, null, null, null };
+                code = (int)jr.Invoke(res, args);
+                if (code != 0) return rows;
+                int n = (int)args[2];
+                var obj = (string[])args[3]; var lc = (string[])args[5];
+                var f1 = (double[])args[8]; var f2 = (double[])args[9]; var f3 = (double[])args[10];
+                var m1 = (double[])args[11]; var m2 = (double[])args[12]; var m3 = (double[])args[13];
+                for (int i = 0; i < n; i++)
+                    rows.Add(new ReactionRow { Joint = obj[i], Case = lc[i], F1 = f1[i], F2 = f2[i], F3 = f3[i], M1 = m1[i], M2 = m2[i], M3 = m3[i] });
+                return rows;
+            }
+            finally { SetUnits(prev); }
+        }
     }
 }
