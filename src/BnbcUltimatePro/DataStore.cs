@@ -9,6 +9,7 @@ namespace BnbcUltimatePro
 {
     internal class Town { public string Name; public double Z; }
     internal class LiveRow { public string Name; public double LL; public string Notes; public int Page; public override string ToString() { return Name; } }
+    internal class SysRow { public string Name; public double R, Omega, Cd; public string HB, HC, HD; public int Page; public override string ToString() { return Name; } }
     internal class SoilRow { public string Name; public double S, TB, TC, TD; }
 
     internal static class DataStore
@@ -16,6 +17,7 @@ namespace BnbcUltimatePro
         public static List<Town> Towns = new List<Town>();
         public static List<SoilRow> Soils = new List<SoilRow>();
         public static List<LiveRow> Lives = new List<LiveRow>();
+        public static List<SysRow> Systems = new List<SysRow>();
 
         // Short pointers to the notes of BNBC 2020 Table 6.2.3 (PDF p.540-541)
         public static readonly Dictionary<string, string> LiveNotes = new Dictionary<string, string>
@@ -46,6 +48,7 @@ namespace BnbcUltimatePro
         {
             Towns = Rows("seismic_towns.csv").Select(r => new Town { Name = r[0], Z = D(r[1]) }).OrderBy(t => t.Name).ToList();
             Lives = Rows("live_loads.csv", '|').Select(r => new LiveRow { Name = r[0], LL = D(r[1]), Notes = r[2], Page = int.Parse(r[3], CultureInfo.InvariantCulture) }).ToList();
+            Systems = Rows("seismic_systems.csv", '|').Select(r => new SysRow { Name = r[0], R = D(r[1]), Omega = D(r[2]), Cd = D(r[3]), HB = r[4], HC = r[5], HD = r[6], Page = int.Parse(r[7], CultureInfo.InvariantCulture) }).ToList();
             Soils = Rows("soil_spectrum.csv").Select(r => new SoilRow { Name = r[0], S = D(r[1]), TB = D(r[2]), TC = D(r[3]), TD = D(r[4]) }).ToList();
         }
 

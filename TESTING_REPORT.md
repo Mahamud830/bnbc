@@ -36,6 +36,16 @@
 | Foundation Reaction Extractor (Results.JointReact for selected joints, CSV export) | UNTESTED - needs analysed model in user ETABS 22 |
 | Sign convention note (F3 positive = upward) | From ETABS convention, confirm on a simple model |
 
+## Version 0.5 - Seismic Static Analysis (NOT yet tested on user PC)
+| Item | Status |
+|---|---|
+| Formulas Eq 6.2.34, 6.2.35a-d, 6.2.36, 6.2.37, 6.2.38, 6.2.41, 6.2.42 | Read from PDF page images (p.615-616, 629-632) |
+| Tables 6.2.18, 6.2.19 (28 systems), 6.2.20 | Typed from PDF text; counts and sample values tested in GitHub build |
+| Numeric test: Dhaka, SC soil, R=5, hn=18 m, 6 stories of 1075 kN: V = 472.27 kN, T = 0.628 s | Automatic in GitHub build (matches independent Python calculation) |
+| Reading story elevations from ETABS | UNTESTED |
+| Transfer of Sa / k into ETABS | NOT implemented (user enters it by hand) |
+| Accidental torsion, drift, shear-wall period (Eq 6.2.39), vertical seismic component | NOT implemented |
+
 ## Not generated / not implemented
 - Flood and tidal-surge combinations (Fa)
 - Ev inside E (user supplies E)

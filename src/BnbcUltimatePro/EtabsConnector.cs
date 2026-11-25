@@ -301,5 +301,31 @@ namespace BnbcUltimatePro
             }
             finally { SetUnits(prev); }
         }
+
+        /// <summary>Story names and elevations (m). Null if the list could not be read.</summary>
+        public List<KeyValuePair<string, double>> GetStoryElevations()
+        {
+            var names = GetStoryNames();
+            if (names == null) return null;
+            var unitsT = asm.GetType("ETABSv1.eUnits", true);
+            var prev = GetUnits();
+            SetUnits(Enum.Parse(unitsT, "kN_m_C"));
+            try
+            {
+                var st = modelI.GetProperty("Story").GetValue(model, null);
+                var sI = asm.GetType("ETABSv1.cStory", true);
+                var m = sI.GetMethods().First(x => x.Name == "GetElevation");
+                var list = new List<KeyValuePair<string, double>>();
+                foreach (var n in names)
+                {
+                    var args = new object[] { n, 0.0 };
+                    int ret = (int)m.Invoke(st, args);
+                    if (ret != 0) return null;
+                    list.Add(new KeyValuePair<string, double>(n, (double)args[1]));
+                }
+                return list;
+            }
+            finally { SetUnits(prev); }
+        }
     }
 }

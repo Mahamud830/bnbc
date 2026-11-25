@@ -54,6 +54,16 @@ namespace BnbcUltimatePro
             ok &= DataStore.Lives.Count(l => l.Name.ToLowerInvariant().Contains("residential")) == 6;
             ok &= Math.Abs(WallCalc.LineLoad(18.9, 0.125, 3.0, 0, 0, 0) - 7.0875) < 1e-9;
             ok &= Math.Abs(WallCalc.LineLoad(18.9, 0.125, 3.0, 0.5, 2, 0.1) - (18.9 * 0.125 + 1.0) * 3.0 * 0.9) < 1e-9;
+            ok &= DataStore.Systems.Count == 28;
+            ok &= SeismicCalc.Sdc("SC", 2, false) == "C" && SeismicCalc.Sdc("SD", 1, false) == "C" && SeismicCalc.Sdc("SB", 3, true) == "D";
+            var sys = DataStore.Systems.First(x => x.Name.Contains("Intermediate reinforced concrete moment"));
+            ok &= sys.R == 5.0;
+            var hs = new System.Collections.Generic.List<double> { 3, 6, 9, 12, 15, 18 };
+            var ws = new System.Collections.Generic.List<double> { 1075, 1075, 1075, 1075, 1075, 1075 };
+            var nm = new System.Collections.Generic.List<string> { "S1", "S2", "S3", "S4", "S5", "S6" };
+            double vv, tt;
+            SeismicCalc.Run(0.20, 1.0, "SC", sc, sys, SeismicCalc.PeriodTypes[0], 18.0, null, true, false, hs, ws, nm, out vv, out tt);
+            ok &= Math.Abs(vv - 472.26566793718496) < 1e-4 && Math.Abs(tt - 0.6282480818391045) < 1e-9;
             return ok;
         }
     }

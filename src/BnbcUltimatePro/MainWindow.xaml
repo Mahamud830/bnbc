@@ -50,6 +50,7 @@
         <Button Style="{StaticResource NavBtn}" Content="Load Combinations" Tag="PageCombos" Click="Nav_Click"/>
         <Button Style="{StaticResource NavBtn}" Content="Floor &amp; Wall Loads" Tag="PageFloors" Click="Nav_Click"/>
         <Button Style="{StaticResource NavBtn}" Content="Foundation Reactions" Tag="PageReact" Click="Nav_Click"/>
+        <Button Style="{StaticResource NavBtn}" Content="Seismic Static Analysis" Tag="PageSeis" Click="Nav_Click"/>
         <TextBlock Text="BNBC 2020 / ETABS 22" Foreground="#6B7FA8" FontSize="11" Margin="18,30,0,0"/>
       </StackPanel>
     </Border>
@@ -240,6 +241,43 @@
                 <DataGridTextColumn Header="Mz" Binding="{Binding M3, StringFormat=0.00}" Width="*"/>
               </DataGrid.Columns>
             </DataGrid>
+          </StackPanel></ScrollViewer>
+        </Border>
+
+        <!-- Seismic static analysis -->
+        <Border x:Name="PageSeis" Background="{StaticResource Card}" CornerRadius="6" Padding="20" Visibility="Collapsed">
+          <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel>
+            <TextBlock Text="Seismic Static Analysis (BNBC 2020 Sec 2.5.7)" FontSize="22" FontWeight="Bold"/>
+            <TextBlock Foreground="#9FB4D9" TextWrapping="Wrap" Margin="0,6,0,8"
+                       Text="Z, I and the soil parameters come from Project Setup (location, occupancy, soil from your geotechnical report). Choose the structural system, enter the building height and the story data. Nothing is assumed: missing data gives INCOMPLETE."/>
+            <StackPanel MaxWidth="560" HorizontalAlignment="Left">
+              <TextBlock Text="Seismic force-resisting system (Table 6.2.19)" Style="{StaticResource Lbl}"/><ComboBox x:Name="CmbSys"/>
+              <TextBlock Text="Structure type for the approximate period (Table 6.2.20)" Style="{StaticResource Lbl}"/><ComboBox x:Name="CmbPeriod"/>
+              <TextBlock Text="Building height hn from foundation (m)" Style="{StaticResource Lbl}"/><TextBox x:Name="TxtHn"/>
+              <TextBlock Text="Period from your ETABS modal analysis (s), optional. Used up to 1.4 x approximate period" Style="{StaticResource Lbl}"/><TextBox x:Name="TxtTan"/>
+              <CheckBox x:Name="ChkRegular" Margin="0,10,0,0"><TextBlock TextWrapping="Wrap" Text="I confirm the building has no vertical irregularity (Sec 2.5.5.3.2)"/></CheckBox>
+            </StackPanel>
+            <TextBlock Text="Story data (heights measured from the base)" Style="{StaticResource Lbl}" Margin="0,14,0,3"/>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+              <Button Style="{StaticResource ActBtn}" Content="Read stories from ETABS" Click="SeisRead_Click"/>
+              <Button Style="{StaticResource ActBtn}" Content="Add story" Click="SeisAdd_Click" Background="#334A7A"/>
+            </StackPanel>
+            <DataGrid x:Name="SeisGrid" AutoGenerateColumns="False" CanUserAddRows="False" HeadersVisibility="Column" Height="200">
+              <DataGrid.Columns>
+                <DataGridTextColumn Header="Story" Binding="{Binding Story}" Width="*"/>
+                <DataGridTextColumn Header="Height h (m)" Binding="{Binding Height}" Width="100"/>
+                <DataGridTextColumn Header="Dead incl. SDL, walls (kN)" Binding="{Binding Dead}" Width="170"/>
+                <DataGridTextColumn Header="Live load (kN)" Binding="{Binding Live}" Width="110"/>
+                <DataGridTextColumn Header="Live intensity (kN/m2)" Binding="{Binding LiveIntensity}" Width="150"/>
+              </DataGrid.Columns>
+            </DataGrid>
+            <TextBlock Foreground="#9FB4D9" TextWrapping="Wrap" Margin="0,6,0,0" Text="Seismic weight of a story = Dead + 25% of Live when live intensity is 3 kN/m2 or less, 50% when above (Sec 2.5.7.3). Add permanent heavy equipment or stored liquid to Dead."/>
+            <StackPanel Orientation="Horizontal" Margin="0,12,0,12">
+              <Button Style="{StaticResource ActBtn}" Content="Calculate" Click="SeisCalc_Click" Background="#0891B2"/>
+              <Button Style="{StaticResource ActBtn}" Content="Export Report (.txt)" Click="SeisExport_Click"/>
+            </StackPanel>
+            <TextBox x:Name="TxtSeisResult" IsReadOnly="True" FontFamily="Consolas" TextWrapping="NoWrap" AcceptsReturn="True" Height="360" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"/>
+            <TextBlock Foreground="#FBBF24" TextWrapping="Wrap" Margin="0,8,0,0" Text="To use this in ETABS, enter the base shear coefficient Sa and exponent k in Define > Load Patterns > Modify Lateral Load > User Coefficient yourself, and set the mass source to Dead + the same live load fractions. Automatic transfer to ETABS is not built yet."/>
           </StackPanel></ScrollViewer>
         </Border>
       </Grid>

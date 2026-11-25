@@ -1,0 +1,29 @@
+System|R|Omega|Cd|HB|HC|HD|Page
+A. Bearing wall - Special reinforced concrete shear walls|5|2.5|5|NL|NL|50|624
+A. Bearing wall - Ordinary reinforced concrete shear walls|4|2.5|4|NL|NL|NP|624
+A. Bearing wall - Ordinary reinforced masonry shear walls|2|2.5|1.75|NL|50|NP|624
+A. Bearing wall - Ordinary plain masonry shear walls|1.5|2.5|1.25|18|NP|NP|624
+B. Building frame - Steel eccentrically braced frames, moment resisting connections away from links|8|2|4|NL|NL|50|625
+B. Building frame - Steel eccentrically braced frames, non-moment-resisting connections away from links|7|2|4|NL|NL|50|625
+B. Building frame - Special steel concentrically braced frames|6|2|5|NL|NL|50|625
+B. Building frame - Ordinary steel concentrically braced frames|3.25|2|3.25|NL|NL|11|625
+B. Building frame - Special reinforced concrete shear walls|6|2.5|5|NL|NL|50|625
+B. Building frame - Ordinary reinforced concrete shear walls|5|2.5|4.25|NL|NL|NP|625
+B. Building frame - Ordinary reinforced masonry shear walls|2|2.5|2|NL|50|NP|625
+B. Building frame - Ordinary plain masonry shear walls|1.5|2.5|1.25|18|NP|NP|625
+C. Moment frame - Special steel moment frames|8|3|5.5|NL|NL|NL|625
+C. Moment frame - Intermediate steel moment frames|4.5|3|4|NL|NL|35|625
+C. Moment frame - Ordinary steel moment frames|3.5|3|3|NL|NL|NP|625
+C. Moment frame - Special reinforced concrete moment frames|8|3|5.5|NL|NL|NL|626
+C. Moment frame - Intermediate reinforced concrete moment frames|5|3|4.5|NL|NL|NP|626
+C. Moment frame - Ordinary reinforced concrete moment frames|3|3|2.5|NL|NP|NP|626
+D. Dual system, special moment frames - Steel eccentrically braced frames|8|2.5|4|NL|NL|NL|626
+D. Dual system, special moment frames - Special steel concentrically braced frames|7|2.5|5.5|NL|NL|NL|626
+D. Dual system, special moment frames - Special reinforced concrete shear walls|7|2.5|5.5|NL|NL|NL|626
+D. Dual system, special moment frames - Ordinary reinforced concrete shear walls|6|2.5|5|NL|NL|NP|626
+E. Dual system, intermediate moment frames - Special steel concentrically braced frames|6|2.5|5|NL|NL|11|626
+E. Dual system, intermediate moment frames - Special reinforced concrete shear walls|6.5|2.5|5|NL|NL|50|626
+E. Dual system, intermediate moment frames - Ordinary reinforced masonry shear walls|3|3|3|NL|50|NP|626
+E. Dual system, intermediate moment frames - Ordinary reinforced concrete shear walls|5.5|2.5|4.5|NL|NL|NP|627
+F. Dual shear wall-frame - Ordinary RC moment frames and ordinary RC shear walls|4.5|2.5|4|NL|NP|NP|627
+G. Steel systems not specifically detailed for seismic resistance|3|3|3|NL|NL|NP|627

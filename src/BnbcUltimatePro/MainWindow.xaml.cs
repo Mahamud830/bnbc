@@ -18,11 +18,12 @@ namespace BnbcUltimatePro
         readonly EtabsConnector etabs = new EtabsConnector();
         readonly ObservableCollection<string> log = new ObservableCollection<string>();
         readonly ObservableCollection<PatternSpec> patterns = new ObservableCollection<PatternSpec>();
-        readonly string[] pageNames = { "PageDashboard", "PageProject", "PageSeismic", "PageLoads", "PageCombos", "PageFloors", "PageReact" };
+        readonly string[] pageNames = { "PageDashboard", "PageProject", "PageSeismic", "PageLoads", "PageCombos", "PageFloors", "PageReact", "PageSeis" };
         static readonly string[] PatternTypes = { "Dead", "SuperDead", "Live", "ReduceLive", "RoofLive", "Quake", "Wind", "Snow", "Other" };
         bool loading;
         readonly ObservableCollection<MapRow> mapRows = new ObservableCollection<MapRow>();
         readonly ObservableCollection<ComboRow> comboRows = new ObservableCollection<ComboRow>();
+        readonly ObservableCollection<StoryRow> seisRows = new ObservableCollection<StoryRow>();
         readonly ObservableCollection<FloorRow> floors = new ObservableCollection<FloorRow>();
         readonly ObservableCollection<EtabsConnector.ReactionRow> reactions = new ObservableCollection<EtabsConnector.ReactionRow>();
 
@@ -52,6 +53,9 @@ namespace BnbcUltimatePro
             ComboGrid.ItemsSource = comboRows;
             LstOcc.ItemsSource = DataStore.Lives.Select(l => l.Name).ToList();
             ReactGrid.ItemsSource = reactions;
+            SeisGrid.ItemsSource = seisRows;
+            CmbSys.ItemsSource = DataStore.Systems;
+            CmbPeriod.ItemsSource = SeismicCalc.PeriodTypes;
             FloorGrid.ItemsSource = floors;
             FloorGrid.CellEditEnding += (s2, e2) => Dispatcher.BeginInvoke(new Action(() => FloorGrid_SelectionChanged(null, null)));
             CmbWallMat.ItemsSource = WallCalc.Materials;
@@ -466,6 +470,81 @@ namespace BnbcUltimatePro
                 File.WriteAllText(d.FileName, sb.ToString(), Encoding.UTF8);
                 Log("INFO", "Exported " + d.FileName);
             }
+            catch (Exception ex) { Log("ERROR", "Export failed: " + ex.Message); }
+        }
+
+
+        // ---------- seismic static analysis ----------
+        void SeisAdd_Click(object sender, RoutedEventArgs e) { seisRows.Add(new StoryRow { Story = "Story" + (seisRows.Count + 1) }); }
+
+        void SeisRead_Click(object sender, RoutedEventArgs e)
+        {
+            if (!EnsureModel()) return;
+            try
+            {
+                var list = etabs.GetStoryElevations();
+                if (list == null || list.Count == 0) { Log("ERROR", "Could not read story elevations from ETABS. Enter them by hand."); return; }
+                double baseElev = list.Min(x => x.Value);
+                foreach (var kv in list.OrderBy(x => x.Value))
+                {
+                    double h = kv.Value - baseElev;
+                    if (h <= 0) continue;
+                    if (seisRows.Any(r => string.Equals(r.Story, kv.Key, StringComparison.OrdinalIgnoreCase))) continue;
+                    seisRows.Add(new StoryRow { Story = kv.Key, Height = h.ToString("0.###", CultureInfo.InvariantCulture) });
+                }
+                Log("INFO", "Stories read. Heights are measured from the lowest level (" + baseElev.ToString("0.###", CultureInfo.InvariantCulture) + " m). Enter weights yourself.");
+            }
+            catch (Exception ex) { Log("ERROR", "Read stories failed: " + (ex.InnerException ?? ex).Message); }
+        }
+
+        void SeisCalc_Click(object sender, RoutedEventArgs e)
+        {
+            SeisGrid.CommitEdit(DataGridEditingUnit.Row, true);
+            var p = ReadProject();
+            var missing = new List<string>();
+            var town = DataStore.Towns.FirstOrDefault(t => t.Name == p.Town);
+            var soil = DataStore.Soils.FirstOrDefault(x => x.Name == p.Soil);
+            double I = DataStore.ImportanceFactor(p.Occupancy);
+            var sys = CmbSys.SelectedItem as SysRow;
+            var pt = CmbPeriod.SelectedItem as PeriodType;
+            double hn; double tan; double? tAnalysis = null;
+            if (town == null) missing.Add("Location (Project Setup)");
+            if (soil == null) missing.Add("Soil type (Project Setup)");
+            if (double.IsNaN(I)) missing.Add("Occupancy category (Project Setup)");
+            if (sys == null) missing.Add("Structural system");
+            if (pt == null) missing.Add("Structure type for the period");
+            if (!Num(TxtHn.Text, out hn) || hn <= 0) missing.Add("Building height hn");
+            if (!string.IsNullOrWhiteSpace(TxtTan.Text)) { if (Num(TxtTan.Text, out tan) && tan > 0) tAnalysis = tan; else missing.Add("Analysis period (or leave blank)"); }
+            var h = new List<double>(); var w = new List<double>(); var names = new List<string>();
+            var wlines = new StringBuilder();
+            if (seisRows.Count == 0) missing.Add("Story data");
+            foreach (var r in seisRows)
+            {
+                double hh, d, l, inten;
+                if (!Num(r.Height, out hh) || hh <= 0 || !Num(r.Dead, out d) || d < 0 || !Num(r.Live, out l) || l < 0 || !Num(r.LiveIntensity, out inten) || inten < 0)
+                { missing.Add("Story data for " + r.Story + " (height, dead, live, live intensity)"); continue; }
+                double f = SeismicCalc.LiveFraction(inten);
+                h.Add(hh); names.Add(r.Story); w.Add(d + f * l);
+                wlines.AppendLine(string.Format(CultureInfo.InvariantCulture, "  {0}: w = {1} + {2} x {3} = {4:0.0} kN", r.Story, d, f, l, d + f * l));
+            }
+            if (missing.Count > 0)
+            {
+                TxtSeisResult.Text = "INCOMPLETE - missing or invalid:\n  - " + string.Join("\n  - ", missing) + "\nNo result is given.";
+                Log("ERROR", "Seismic calculation incomplete: " + missing.Count + " item(s) missing.");
+                return;
+            }
+            double V, T;
+            string rep = SeismicCalc.Run(town.Z, I, soil.Name, soil, sys, pt, hn, tAnalysis, ChkRegular.IsChecked == true, p.Occupancy == "IV", h, w, names, out V, out T);
+            TxtSeisResult.Text = "Seismic weights (Sec 2.5.7.3):\n" + wlines + "\n" + rep;
+            Log("INFO", "Seismic static analysis done. V = " + V.ToString("0.0", CultureInfo.InvariantCulture) + " kN, T = " + T.ToString("0.000", CultureInfo.InvariantCulture) + " s.");
+        }
+
+        void SeisExport_Click(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(TxtSeisResult.Text)) { Log("ERROR", "Calculate first."); return; }
+            var d = new SaveFileDialog { Filter = "Text report (*.txt)|*.txt", FileName = "seismic_static_report.txt" };
+            if (d.ShowDialog() != true) return;
+            try { File.WriteAllText(d.FileName, "BNBC ULTIMATE PRO - " + DateTime.Now.ToString("yyyy-MM-dd HH:mm") + "\n\n" + TxtSeisResult.Text, Encoding.UTF8); Log("INFO", "Exported " + d.FileName); }
             catch (Exception ex) { Log("ERROR", "Export failed: " + ex.Message); }
         }
 
