@@ -51,6 +51,15 @@
         <Button Style="{StaticResource NavBtn}" Content="Floor &amp; Wall Loads" Tag="PageFloors" Click="Nav_Click"/>
         <Button Style="{StaticResource NavBtn}" Content="Foundation Reactions" Tag="PageReact" Click="Nav_Click"/>
         <Button Style="{StaticResource NavBtn}" Content="Seismic Static Analysis" Tag="PageSeis" Click="Nav_Click"/>
+        <Button Style="{StaticResource NavBtn}" Content="Wind Load" Tag="PageWind" Click="Nav_Click"/>
+        <Button Style="{StaticResource NavBtn}" Content="Model Checker" Tag="PageCheck" Click="Nav_Click"/>
+        <Button Style="{StaticResource NavBtn}" Content="Compliance Checker" Tag="PageComp" Click="Nav_Click"/>
+        <Button Style="{StaticResource NavBtn}" Content="Report" Tag="PageReport" Click="Nav_Click"/>
+        <Button Style="{StaticResource NavBtn}" Content="Report" Tag="PageReport" Click="Nav_Click"/>
+        <Button Style="{StaticResource NavBtn}" Content="Model Checker" Tag="PageCheck" Click="Nav_Click"/>
+        <Button Style="{StaticResource NavBtn}" Content="Compliance Checker" Tag="PageComp" Click="Nav_Click"/>
+        <Button Style="{StaticResource NavBtn}" Content="Report" Tag="PageReport" Click="Nav_Click"/>
+        <Button Style="{StaticResource NavBtn}" Content="Report" Tag="PageReport" Click="Nav_Click"/>
         <TextBlock Text="BNBC 2020 / ETABS 22" Foreground="#6B7FA8" FontSize="11" Margin="18,30,0,0"/>
       </StackPanel>
     </Border>
@@ -279,6 +288,139 @@
             <TextBox x:Name="TxtSeisResult" IsReadOnly="True" FontFamily="Consolas" TextWrapping="NoWrap" AcceptsReturn="True" Height="360" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"/>
             <TextBlock Foreground="#FBBF24" TextWrapping="Wrap" Margin="0,8,0,0" Text="To use this in ETABS, enter the base shear coefficient Sa and exponent k in Define > Load Patterns > Modify Lateral Load > User Coefficient yourself, and set the mass source to Dead + the same live load fractions. Automatic transfer to ETABS is not built yet."/>
           </StackPanel></ScrollViewer>
+        </Border>
+
+        <!-- Wind load -->
+        <Border x:Name="PageWind" Background="{StaticResource Card}" CornerRadius="6" Padding="20" Visibility="Collapsed">
+          <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel>
+            <TextBlock Text="Wind Load (BNBC 2020 Sec 2.4, Method 2)" FontSize="22" FontWeight="Bold"/>
+            <TextBlock Foreground="#9FB4D9" TextWrapping="Wrap" Margin="0,6,0,8"
+                       Text="Rigid, regular-shaped, enclosed building. The basic wind speed comes from Table 6.2.8 for the location you choose. Exposure, occupancy category and region type are your decisions; nothing is assumed."/>
+            <StackPanel MaxWidth="560" HorizontalAlignment="Left">
+              <TextBlock Text="Location (Table 6.2.8)" Style="{StaticResource Lbl}"/><ComboBox x:Name="CmbWindLoc" SelectionChanged="WindLoc_Changed"/>
+              <TextBlock Text="Basic wind speed V (m/s). Edit only with a documented source" Style="{StaticResource Lbl}"/><TextBox x:Name="TxtWindV"/>
+              <TextBlock Text="Occupancy / importance category (Table 6.1.1)" Style="{StaticResource Lbl}"/><ComboBox x:Name="CmbWindCat"/>
+              <TextBlock Text="Region type for the importance factor (Table 6.2.9)" Style="{StaticResource Lbl}"/><ComboBox x:Name="CmbWindRegion"/>
+              <TextBlock Text="Exposure category (Sec 2.4.6.3)" Style="{StaticResource Lbl}"/><ComboBox x:Name="CmbExposure"/>
+              <TextBlock Text="Building plan dimension along X (m)" Style="{StaticResource Lbl}"/><TextBox x:Name="TxtDimX"/>
+              <TextBlock Text="Building plan dimension along Y (m)" Style="{StaticResource Lbl}"/><TextBox x:Name="TxtDimY"/>
+              <TextBlock Text="Fundamental period T (s), from your ETABS modal analysis. Rigid means T of 1 s or less" Style="{StaticResource Lbl}"/><TextBox x:Name="TxtWindT"/>
+              <CheckBox x:Name="ChkWindScope" Margin="0,10,0,0"><TextBlock TextWrapping="Wrap" Text="I confirm Sec 2.4.3.1: regular-shaped building, no across-wind, vortex shedding, galloping, flutter, channeling or buffeting effects"/></CheckBox>
+              <CheckBox x:Name="ChkNoTopo" Margin="0,6,0,0"><TextBlock TextWrapping="Wrap" Text="I confirm the hill / ridge / escarpment conditions of Sec 2.4.7.1 are not met, so Kzt = 1.0"/></CheckBox>
+            </StackPanel>
+            <TextBlock Text="Story levels (elevation z above ground, m)" Style="{StaticResource Lbl}" Margin="0,14,0,3"/>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+              <Button Style="{StaticResource ActBtn}" Content="Read stories from ETABS" Click="WindRead_Click"/>
+              <Button Style="{StaticResource ActBtn}" Content="Copy from seismic story data" Click="WindCopy_Click" Background="#334A7A"/>
+              <Button Style="{StaticResource ActBtn}" Content="Add story" Click="WindAdd_Click" Background="#334A7A"/>
+            </StackPanel>
+            <DataGrid x:Name="WindGrid" AutoGenerateColumns="False" CanUserAddRows="False" HeadersVisibility="Column" Height="170">
+              <DataGrid.Columns>
+                <DataGridTextColumn Header="Story" Binding="{Binding Story}" Width="*"/>
+                <DataGridTextColumn Header="Elevation z (m)" Binding="{Binding Elevation}" Width="160"/>
+              </DataGrid.Columns>
+            </DataGrid>
+            <StackPanel Orientation="Horizontal" Margin="0,12,0,12">
+              <Button Style="{StaticResource ActBtn}" Content="Calculate" Click="WindCalc_Click" Background="#0891B2"/>
+              <Button Style="{StaticResource ActBtn}" Content="Export forces (.csv)" Click="WindCsv_Click"/>
+              <Button Style="{StaticResource ActBtn}" Content="Export report (.txt)" Click="WindTxt_Click"/>
+            </StackPanel>
+            <TextBox x:Name="TxtWindResult" IsReadOnly="True" FontFamily="Consolas" TextWrapping="NoWrap" AcceptsReturn="True" Height="380" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"/>
+          </StackPanel></ScrollViewer>
+        </Border>
+
+        <!-- Model checker -->
+        <Border x:Name="PageCheck" Background="{StaticResource Card}" CornerRadius="6" Padding="20" Visibility="Collapsed">
+          <DockPanel>
+            <TextBlock DockPanel.Dock="Top" Text="Structural Model Checker" FontSize="22" FontWeight="Bold"/>
+            <TextBlock DockPanel.Dock="Top" Foreground="#9FB4D9" TextWrapping="Wrap" Margin="0,6,0,8"
+                       Text="Reads the open ETABS model and your project data. A check is PASS only when it was actually verified. Missing data is INCOMPLETE and anything that could not be read is UNKNOWN."/>
+            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,10">
+              <Button Style="{StaticResource ActBtn}" Content="Run checks" Click="RunChecks_Click" Background="#0891B2"/>
+              <Button Style="{StaticResource ActBtn}" Content="Export report (.txt)" Click="CheckExport_Click"/>
+            </StackPanel>
+            <TextBlock x:Name="TxtCheckSummary" DockPanel.Dock="Top" FontFamily="Consolas" Margin="0,0,0,8"/>
+            <DataGrid x:Name="CheckGrid" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True" HeadersVisibility="Column">
+              <DataGrid.Columns>
+                <DataGridTextColumn Header="Check" Binding="{Binding Check}" Width="230"/>
+                <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="110"/>
+                <DataGridTextColumn Header="Details" Binding="{Binding Details}" Width="*"/>
+              </DataGrid.Columns>
+            </DataGrid>
+          </DockPanel>
+        </Border>
+
+        <!-- Model checker -->
+        <Border x:Name="PageCheck" Background="{StaticResource Card}" CornerRadius="6" Padding="20" Visibility="Collapsed">
+          <DockPanel>
+            <TextBlock DockPanel.Dock="Top" Text="Model Checker" FontSize="22" FontWeight="Bold"/>
+            <TextBlock DockPanel.Dock="Top" Foreground="#9FB4D9" TextWrapping="Wrap" Margin="0,6,0,8"
+                       Text="Reads the open ETABS model and your project data. A check that cannot be completed is shown as NOT CHECKED or INCOMPLETE, never as PASS."/>
+            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,10">
+              <Button Style="{StaticResource ActBtn}" Content="Run checks" Click="RunChecks_Click" Background="#0891B2"/>
+              <Button Style="{StaticResource ActBtn}" Content="Export (.csv)" Click="ExportChecks_Click"/>
+            </StackPanel>
+            <TextBlock DockPanel.Dock="Top" x:Name="TxtCheckSummary" FontWeight="SemiBold" Margin="0,0,0,8"/>
+            <DataGrid x:Name="CheckGrid" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True" HeadersVisibility="Column">
+              <DataGrid.Columns>
+                <DataGridTextColumn Header="Check" Binding="{Binding Check}" Width="230"/>
+                <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="110"/>
+                <DataGridTextColumn Header="Detail" Binding="{Binding Details}" Width="*"/>
+              </DataGrid.Columns>
+            </DataGrid>
+          </DockPanel>
+        </Border>
+
+        <!-- Report -->
+        <Border x:Name="PageReport" Background="{StaticResource Card}" CornerRadius="6" Padding="20" Visibility="Collapsed">
+          <StackPanel>
+            <TextBlock Text="Report Generator" FontSize="22" FontWeight="Bold"/>
+            <TextBlock Foreground="#9FB4D9" TextWrapping="Wrap" Margin="0,6,0,10"
+                       Text="Collects the results already calculated in the other pages. Anything not calculated is written as 'Not calculated', never as a result. The HTML report opens in your browser: use Print and choose Save as PDF to get a PDF."/>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+              <Button Style="{StaticResource ActBtn}" Content="Show what is included" Click="ReportPreview_Click"/>
+              <Button Style="{StaticResource ActBtn}" Content="Export HTML report" Click="ReportHtml_Click" Background="#0891B2"/>
+              <Button Style="{StaticResource ActBtn}" Content="Export Excel (.xlsx)" Click="ReportXlsx_Click" Background="#0891B2"/>
+            </StackPanel>
+            <TextBlock x:Name="TxtReportInfo" FontFamily="Consolas" TextWrapping="Wrap"/>
+          </StackPanel>
+        </Border>
+
+        <!-- Report -->
+        <Border x:Name="PageReport" Background="{StaticResource Card}" CornerRadius="6" Padding="20" Visibility="Collapsed">
+          <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel>
+            <TextBlock Text="Calculation Report" FontSize="22" FontWeight="Bold"/>
+            <TextBlock Foreground="#9FB4D9" TextWrapping="Wrap" Margin="0,6,0,8"
+                       Text="Collects the project data and every result you have produced in this session into one report. Sections you have not calculated are marked as empty, never filled in. For PDF: open the HTML report in your browser and print it to PDF."/>
+            <StackPanel Orientation="Horizontal" Margin="0,4,0,12">
+              <Button Style="{StaticResource ActBtn}" Content="Export Excel (.xlsx)" Click="RptXlsx_Click" Background="#0891B2"/>
+              <Button Style="{StaticResource ActBtn}" Content="Export HTML" Click="RptHtml_Click"/>
+              <Button Style="{StaticResource ActBtn}" Content="Open in browser (print to PDF)" Click="RptOpen_Click"/>
+            </StackPanel>
+            <TextBlock Text="What the report will contain" Style="{StaticResource Lbl}"/>
+            <TextBlock x:Name="TxtReportInfo" FontFamily="Consolas" TextWrapping="Wrap"/>
+          </StackPanel></ScrollViewer>
+        </Border>
+
+        <!-- Compliance checker -->
+        <Border x:Name="PageComp" Background="{StaticResource Card}" CornerRadius="6" Padding="20" Visibility="Collapsed">
+          <DockPanel>
+            <TextBlock DockPanel.Dock="Top" Text="BNBC 2020 Compliance Checker" FontSize="22" FontWeight="Bold"/>
+            <TextBlock DockPanel.Dock="Top" Foreground="#9FB4D9" TextWrapping="Wrap" Margin="0,6,0,8"
+                       Text="Collects what this tool has calculated in this session and lists every violation, missing input and limit. Work you have not done is shown as NOT CALCULATED, and missing data is never shown as PASS. This checks the consistency of the tool's own results; it is not an approval of the design."/>
+            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,10">
+              <Button Style="{StaticResource ActBtn}" Content="Run compliance check" Click="RunCompliance_Click" Background="#0891B2"/>
+              <Button Style="{StaticResource ActBtn}" Content="Export (.csv)" Click="ExportCompliance_Click"/>
+            </StackPanel>
+            <TextBlock DockPanel.Dock="Top" x:Name="TxtCompSummary" FontWeight="SemiBold" Margin="0,0,0,8"/>
+            <DataGrid x:Name="CompGrid" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True" HeadersVisibility="Column">
+              <DataGrid.Columns>
+                <DataGridTextColumn Header="Requirement" Binding="{Binding Check}" Width="250"/>
+                <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="120"/>
+                <DataGridTextColumn Header="Detail and code reference" Binding="{Binding Details}" Width="*"/>
+              </DataGrid.Columns>
+            </DataGrid>
+          </DockPanel>
         </Border>
       </Grid>
 

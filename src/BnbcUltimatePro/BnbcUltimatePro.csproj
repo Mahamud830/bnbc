@@ -7,14 +7,16 @@
     <PlatformTarget>x64</PlatformTarget>
     <RootNamespace>BnbcUltimatePro</RootNamespace>
     <AssemblyName>BnbcUltimatePro</AssemblyName>
-    <Version>0.5.0</Version>
+    <Version>0.9.0</Version>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.IO.Compression" />
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
     <EmbeddedResource Include="Data\seismic_towns.csv" LogicalName="seismic_towns.csv" />
     <EmbeddedResource Include="Data\soil_spectrum.csv" LogicalName="soil_spectrum.csv" />
     <EmbeddedResource Include="Data\live_loads.csv" LogicalName="live_loads.csv" />
     <EmbeddedResource Include="Data\seismic_systems.csv" LogicalName="seismic_systems.csv" />
+    <EmbeddedResource Include="Data\wind_speeds.csv" LogicalName="wind_speeds.csv" />
   </ItemGroup>
 </Project>

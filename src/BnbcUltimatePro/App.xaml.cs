@@ -64,6 +64,61 @@ namespace BnbcUltimatePro
             double vv, tt;
             SeismicCalc.Run(0.20, 1.0, "SC", sc, sys, SeismicCalc.PeriodTypes[0], 18.0, null, true, false, hs, ws, nm, out vv, out tt);
             ok &= Math.Abs(vv - 472.26566793718496) < 1e-4 && Math.Abs(tt - 0.6282480818391045) < 1e-9;
+            ok &= DataStore.WindLocs.Count == 74;
+            var dh = DataStore.WindLocs.FirstOrDefault(x => x.Name == "Dhaka");
+            ok &= dh != null && Math.Abs(dh.V - 65.7) < 1e-9;
+            var eB = WindCalc.Exposures[1];
+            ok &= Math.Abs(WindCalc.Kz(30.5, eB) - 1.26) < 0.01 && Math.Abs(WindCalc.Kz(9.1, eB) - 0.98) < 0.01;
+            ok &= Math.Abs(WindCalc.Kz(4.0, WindCalc.Exposures[0]) - 0.57) < 0.01 && Math.Abs(WindCalc.Kz(61.0, WindCalc.Exposures[2]) - 1.61) < 0.01;
+            ok &= Math.Abs(WindCalc.CpLeeward(1.5) + 0.4) < 1e-9 && Math.Abs(WindCalc.CpLeeward(3.0) + 0.25) < 1e-9 && WindCalc.CpLeeward(5) == -0.2;
+            ok &= WindCalc.Importance("I", false) == 0.87 && WindCalc.Importance("I", true) == 0.77 && WindCalc.Importance("IV", false) == 1.15;
+            var wz = new System.Collections.Generic.List<double> { 3, 6, 9, 12, 15, 18 };
+            var wn = new System.Collections.Generic.List<string> { "S1", "S2", "S3", "S4", "S5", "S6" };
+            double qh0, cp0, pl0;
+            var wf = WindCalc.Forces(wn, wz, 20.0, 30.0, eB, 65.7, 1.0, 1.0, out qh0, out cp0, out pl0);
+            ok &= Math.Abs(wf.Sum(r => r.F) - 783.5165631014145) < 1e-3;
+            var rd = new ReportData { ProjectName = "A&B <test>", Seismic = null };
+            rd.Floors.Add(new[] { "Floor", "Occupancy" }); rd.Floors.Add(new[] { "S1", "Office" });
+            string html = ReportBuilder.Html(rd, "0.0", new DateTime(2026, 1, 1));
+            ok &= html.Contains("A&amp;B &lt;test&gt;") && html.Contains("Not calculated") && html.Contains("MISSING") && !html.Contains(">PASS<");
+            string tmp = System.IO.Path.GetTempFileName() + ".xlsx";
+            try
+            {
+                int ns = ReportBuilder.WriteXlsx(rd, tmp);
+                int parts = 0;
+                using (var pkg = System.IO.Packaging.Package.Open(tmp, System.IO.FileMode.Open, System.IO.FileAccess.Read))
+                    foreach (var pt in pkg.GetParts()) if (pt.Uri.ToString().Contains("/xl/worksheets/sheet")) parts++;
+                ok &= ns == 8 && parts == 8;
+            }
+            finally { try { System.IO.File.Delete(tmp); } catch { } }
+            var rs = new System.Collections.Generic.List<ReportSheet>();
+            var r1 = new ReportSheet("Project"); r1.Add("Item", "Value"); r1.Add("Name", "A & B <test>"); r1.Add("Z", "0.20"); rs.Add(r1);
+            var r2 = new ReportSheet("Text", true); r2.AddLines("line one\nline two"); rs.Add(r2);
+            var tmp = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "bnbc_selftest_" + Guid.NewGuid().ToString("N") + ".xlsx");
+            try
+            {
+                ReportBuilder.WriteXlsx(tmp, rs);
+                using (var zip = System.IO.Compression.ZipFile.OpenRead(tmp))
+                {
+                    ok &= zip.GetEntry("xl/workbook.xml") != null && zip.GetEntry("xl/worksheets/sheet1.xml") != null && zip.GetEntry("xl/worksheets/sheet2.xml") != null;
+                    using (var rd = new System.IO.StreamReader(zip.GetEntry("xl/worksheets/sheet1.xml").Open()))
+                    {
+                        var x = rd.ReadToEnd();
+                        ok &= x.Contains("A &amp; B &lt;test&gt;") && x.Contains("<v>0.2</v>");
+                    }
+                }
+            }
+            finally { try { System.IO.File.Delete(tmp); } catch { } }
+            var html = ReportBuilder.Html("T", rs);
+            ok &= html.Contains("<table>") && html.Contains("A &amp; B &lt;test&gt;") && html.Contains("<pre>line one");
+            ok &= ComplianceRules.ClassifyWarning("This structural system is NOT PERMITTED in seismic design category D.") == "FAIL";
+            ok &= ComplianceRules.ClassifyWarning("Building height 60 m exceeds the limit 50 m for this system in category D.") == "FAIL";
+            ok &= ComplianceRules.ClassifyWarning("Regularity in elevation is not confirmed (Sec 2.5.6b).") == "INCOMPLETE";
+            ok &= ComplianceRules.ClassifyWarning("I/R is greater than 1.") == "WARN";
+            ok &= ComplianceRules.ClassifyWarning("Period is above 4 s: outside the code spectrum, so no result was produced.") == "INCOMPLETE";
+            ok &= ComplianceRules.Worst(new[] { "PASS", "WARN", "FAIL" }) == "FAIL";
+            ok &= ComplianceRules.Worst(new[] { "PASS", "NOT CHECKED" }) == "WARN";
+            ok &= ComplianceRules.Worst(new[] { "PASS", "PASS" }) == "PASS";
             return ok;
         }
     }

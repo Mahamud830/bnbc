@@ -46,6 +46,48 @@
 | Transfer of Sa / k into ETABS | NOT implemented (user enters it by hand) |
 | Accidental torsion, drift, shear-wall period (Eq 6.2.39), vertical seismic component | NOT implemented |
 
+## Version 0.6 - Wind Load (NOT yet tested on user PC)
+| Item | Status |
+|---|---|
+| Eq 6.2.17 (qz), 6.2.19 (p = q G Cp), Cp of Figure 6.2.6, GCpi of Figure 6.2.5 | Read from PDF page images (p.559-561, 573-575) |
+| Table 6.2.8 (74 locations), 6.2.9, 6.2.10, 6.2.11 (formula), 6.2.12 | Typed/parsed from PDF text; counts and sample values tested in GitHub build |
+| Kz formula vs table values (A, B, C) | Automatic test in GitHub build |
+| Reference case (Dhaka V=65.7, Exposure B, 6 stories to 18 m, 20 x 30 m plan): base shear X = 783.5 kN | Automatic test in GitHub build (matches independent Python calculation) |
+| Story forces sent to ETABS | NOT implemented (CSV / report export only) |
+| Roof pressures, torsional wind cases (Fig 6.2.9), parapets, flexible buildings (Eq 6.2.8-6.2.16), partially enclosed buildings, topographic factor Kzt | NOT implemented |
+
+## Version 0.7 - Model Checker (NOT yet tested on user PC)
+| Item | Status |
+|---|---|
+| Project data checks (name, location, soil, occupancy, stories) | Logic simple; UI untested |
+| ETABS checks: analysis status, object counts, stories, diaphragms, support restraints, load patterns named in this tool, BNBC combinations | UNTESTED - needs user ETABS 22 |
+| Result words | PASS / WARN / FAIL / INCOMPLETE / NOT CHECKED. A check that cannot be read from ETABS is never PASS |
+| Compile note | ModelChecker.cs (CheckRow class) was found in the working folder, not written by the assistant; it is used as is |
+
+## Version 0.8 - Report Generator (NOT yet tested on user PC)
+| Item | Status |
+|---|---|
+| HTML report: text escaping, "Not calculated" / "MISSING" for absent data, no PASS without data | Automatic test in GitHub build |
+| Excel (.xlsx) file creation: package opens, 8 worksheets present | Automatic test in GitHub build (structure only) |
+| Excel file opens correctly in Microsoft Excel 2010 on the user PC | UNTESTED |
+| HTML opens in browser and prints to PDF | UNTESTED |
+| Direct PDF file creation | NOT implemented (use browser Print > Save as PDF) |
+
+## Version 0.8 - Report Generator (NOT yet tested on user PC)
+| Item | Status |
+|---|---|
+| Excel (.xlsx) writer, HTML writer | Automatic test in GitHub build: workbook structure, number cells, text escaping |
+| Opening the .xlsx in Excel 2010 on the user PC | UNTESTED (hand-written minimal workbook) |
+| Browser print to PDF | Uses the browser, UNTESTED |
+| Sections not calculated | Shown as empty / NOT ENTERED, never filled in |
+
+## Version 0.9 - Compliance Checker (NOT yet tested on user PC)
+| Item | Status |
+|---|---|
+| Status classification rules (FAIL / INCOMPLETE / WARN / PASS) | Automatic test in GitHub build |
+| Collection of seismic, wind, combination, live load and model-check results | UI untested |
+| What it checks | Only the tool's own results and the limits it knows. It is NOT a full BNBC compliance review and not a design approval |
+
 ## Not generated / not implemented
 - Flood and tidal-surge combinations (Fa)
 - Ev inside E (user supplies E)
