@@ -327,5 +327,79 @@ namespace BnbcUltimatePro
             }
             finally { SetUnits(prev); }
         }
+
+        public bool IsLocked() { return (bool)modelI.GetMethod("GetModelIsLocked").Invoke(model, null); }
+
+        public int CountObjects(string property, string iface)
+        {
+            var o = modelI.GetProperty(property).GetValue(model, null);
+            var m = asm.GetType(iface, true).GetMethods().First(x => x.Name == "Count" && x.GetParameters().Length == 0);
+            return (int)m.Invoke(o, null);
+        }
+
+        public List<string> GetAreaNames()
+        {
+            var o = modelI.GetProperty("AreaObj").GetValue(model, null);
+            return NameList(o, asm.GetType("ETABSv1.cAreaObj", true));
+        }
+
+        /// <summary>Number of area objects that have a uniform load of the given pattern. Returns -1 if it could not be read.</summary>
+        public int CountAreasWithUniformLoad(string pattern, List<string> areaNames)
+        {
+            var o = modelI.GetProperty("AreaObj").GetValue(model, null);
+            var aI = asm.GetType("ETABSv1.cAreaObj", true);
+            var itemT = asm.GetType("ETABSv1.eItemType", true);
+            var m = aI.GetMethods().FirstOrDefault(x => x.Name == "GetLoadUniform" && x.GetParameters().Length == 8);
+            if (m == null) return -1;
+            int count = 0;
+            foreach (var n in areaNames)
+            {
+                var args = new object[] { n, 0, null, null, null, null, null, Enum.Parse(itemT, "Objects") };
+                int ret = (int)m.Invoke(o, args);
+                if (ret != 0) return -1;
+                var pats = args[3] as string[];
+                if (pats != null && pats.Any(x => string.Equals(x, pattern, StringComparison.OrdinalIgnoreCase))) count++;
+            }
+            return count;
+        }
+
+        public bool IsModelLocked()
+        {
+            return (bool)modelI.GetMethod("GetModelIsLocked").Invoke(model, null);
+        }
+
+        public int ObjectCount(string property, string iface)
+        {
+            var o = modelI.GetProperty(property).GetValue(model, null);
+            return (int)asm.GetType(iface, true).GetMethod("Count").Invoke(o, null);
+        }
+
+        public int DiaphragmCount()
+        {
+            var d = modelI.GetProperty("Diaphragm").GetValue(model, null);
+            var l = NameList(d, asm.GetType("ETABSv1.cDiaphragm", true));
+            if (l == null) throw new Exception("Diaphragm list could not be read");
+            return l.Count;
+        }
+
+        /// <summary>Number of joints that have at least one restrained degree of freedom, out of all joints.</summary>
+        public int RestrainedPointCount(out int total)
+        {
+            var po = modelI.GetProperty("PointObj").GetValue(model, null);
+            var pI = asm.GetType("ETABSv1.cPointObj", true);
+            var names = NameList(po, pI);
+            if (names == null) throw new Exception("Joint list could not be read");
+            total = names.Count;
+            var m = pI.GetMethod("GetRestraint");
+            int n = 0;
+            foreach (var name in names)
+            {
+                var args = new object[] { name, null };
+                if ((int)m.Invoke(po, args) != 0) continue;
+                var v = args[1] as bool[];
+                if (v != null && v.Any(b => b)) n++;
+            }
+            return n;
+        }
     }
 }
