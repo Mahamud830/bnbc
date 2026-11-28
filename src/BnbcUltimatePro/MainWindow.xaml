@@ -56,6 +56,7 @@
         <Button Style="{StaticResource NavBtn}" Content="Compliance Checker" Tag="PageComp" Click="Nav_Click"/>
         <Button Style="{StaticResource NavBtn}" Content="Report" Tag="PageReport" Click="Nav_Click"/>
         <Button Style="{StaticResource NavBtn}" Content="ETABS API Check" Tag="PageApi" Click="Nav_Click"/>
+        <Button Style="{StaticResource NavBtn}" Content="Apply Forces to ETABS" Tag="PageApply" Click="Nav_Click"/>
         <TextBlock Text="BNBC 2020 / ETABS 22" Foreground="#6B7FA8" FontSize="11" Margin="18,30,0,0"/>
       </StackPanel>
     </Border>
@@ -395,6 +396,27 @@
             </StackPanel>
             <TextBox x:Name="TxtApiResult" IsReadOnly="True" FontFamily="Consolas" TextWrapping="NoWrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"/>
           </DockPanel>
+        </Border>
+
+        <!-- Apply story forces -->
+        <Border x:Name="PageApply" Background="{StaticResource Card}" CornerRadius="6" Padding="20" Visibility="Collapsed">
+          <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel>
+            <TextBlock Text="Apply Story Forces to ETABS" FontSize="22" FontWeight="Bold"/>
+            <TextBlock Foreground="#9FB4D9" TextWrapping="Wrap" Margin="0,6,0,8"
+                       Text="ETABS 22.5 offers no function to set a BNBC seismic or wind coefficient, so the story forces from this tool are applied as joint forces. Method: 1) Create a Quake or Wind load pattern with no automatic lateral load (Load Patterns page). 2) In ETABS select ONE joint at the center of mass of a story diaphragm. 3) Choose the source and the story row here and press Assign. Repeat for each story. An existing joint force of that pattern on that joint is replaced, so nothing is doubled."/>
+            <TextBlock Text="Source of the forces" Style="{StaticResource Lbl}"/>
+            <ComboBox x:Name="CmbApplySrc" MaxWidth="460" HorizontalAlignment="Left" SelectionChanged="ApplySrc_Changed"/>
+            <TextBlock Text="ETABS load pattern to receive the forces" Style="{StaticResource Lbl}"/>
+            <TextBox x:Name="TxtApplyPat" MaxWidth="260" HorizontalAlignment="Left"/>
+            <DataGrid x:Name="ApplyGrid" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True" HeadersVisibility="Column" Height="220" Margin="0,12,0,0">
+              <DataGrid.Columns>
+                <DataGridTextColumn Header="Story" Binding="{Binding Story}" Width="*"/>
+                <DataGridTextColumn Header="Force (kN)" Binding="{Binding Force, StringFormat=0.00}" Width="160"/>
+              </DataGrid.Columns>
+            </DataGrid>
+            <Button Style="{StaticResource ActBtn}" Content="Assign selected story row to the selected joint" Click="ApplyAssign_Click" Background="#0891B2" Margin="0,12,0,0" HorizontalAlignment="Left"/>
+            <TextBlock Foreground="#FBBF24" TextWrapping="Wrap" Margin="0,10,0,0" Text="Not included: accidental torsion moments (Sec 2.5.7.6) and the wind torsional cases. The forces act in global +X or +Y. The joint must be on the story's rigid diaphragm for the force to reach the whole floor."/>
+          </StackPanel></ScrollViewer>
         </Border>
       </Grid>
 

@@ -18,12 +18,13 @@ namespace BnbcUltimatePro
         readonly EtabsConnector etabs = new EtabsConnector();
         readonly ObservableCollection<string> log = new ObservableCollection<string>();
         readonly ObservableCollection<PatternSpec> patterns = new ObservableCollection<PatternSpec>();
-        readonly string[] pageNames = { "PageDashboard", "PageProject", "PageSeismic", "PageLoads", "PageCombos", "PageFloors", "PageReact", "PageSeis", "PageWind", "PageCheck", "PageComp", "PageReport", "PageApi" };
+        readonly string[] pageNames = { "PageDashboard", "PageProject", "PageSeismic", "PageLoads", "PageCombos", "PageFloors", "PageReact", "PageSeis", "PageWind", "PageCheck", "PageComp", "PageReport", "PageApi", "PageApply" };
         static readonly string[] PatternTypes = { "Dead", "SuperDead", "Live", "ReduceLive", "RoofLive", "Quake", "Wind", "Snow", "Other" };
         bool loading;
         readonly ObservableCollection<MapRow> mapRows = new ObservableCollection<MapRow>();
         readonly ObservableCollection<ComboRow> comboRows = new ObservableCollection<ComboRow>();
         readonly ObservableCollection<CheckRow> checks = new ObservableCollection<CheckRow>();
+        readonly ObservableCollection<ApplyRow> applyRows = new ObservableCollection<ApplyRow>();
         readonly ObservableCollection<CheckRow> compliance = new ObservableCollection<CheckRow>();
         bool seisDone, windDone;
         List<string> seisWarnings = new List<string>();
@@ -63,6 +64,8 @@ namespace BnbcUltimatePro
             WindGrid.ItemsSource = windRows;
             CheckGrid.ItemsSource = checks;
             CompGrid.ItemsSource = compliance;
+            ApplyGrid.ItemsSource = applyRows;
+            CmbApplySrc.ItemsSource = new[] { "Seismic static, along X", "Seismic static, along Y", "Wind, along X", "Wind, along Y" };
             CheckGrid.ItemsSource = checks;
             CmbWindLoc.ItemsSource = DataStore.WindLocs;
             CmbWindCat.ItemsSource = new[] { "I", "II", "III", "IV" };
@@ -1026,6 +1029,47 @@ namespace BnbcUltimatePro
             catch (Exception ex) { Log("ERROR", "Save failed: " + ex.Message); }
         }
 
+
+        // ---------- apply story forces ----------
+        void ApplySrc_Changed(object sender, SelectionChangedEventArgs e)
+        {
+            applyRows.Clear();
+            int src = CmbApplySrc.SelectedIndex;
+            if (src < 0) return;
+            if (src <= 1)
+            {
+                foreach (var kv in SeismicCalc.LastStoryForces) applyRows.Add(new ApplyRow { Story = kv.Key, Force = kv.Value });
+                if (applyRows.Count == 0) Log("WARN", "No seismic result yet. Run Seismic Static Analysis first.");
+            }
+            else
+            {
+                var list = src == 2 ? lastFx : lastFy;
+                if (list == null || list.Count == 0) { Log("WARN", "No wind result yet. Run Wind Load first."); return; }
+                foreach (var r in list) applyRows.Add(new ApplyRow { Story = r.Name, Force = r.F });
+            }
+        }
+
+        void ApplyAssign_Click(object sender, RoutedEventArgs e)
+        {
+            if (!EnsureModel()) return;
+            var row = ApplyGrid.SelectedItem as ApplyRow;
+            if (row == null) { Log("ERROR", "Select a story row in the table first."); return; }
+            string pat = (TxtApplyPat.Text ?? "").Trim();
+            if (pat.Length == 0) { Log("ERROR", "Type the ETABS load pattern name."); return; }
+            bool alongX = CmbApplySrc.SelectedIndex == 0 || CmbApplySrc.SelectedIndex == 2;
+            try
+            {
+                if (!etabs.GetLoadPatternNames().Contains(pat, StringComparer.OrdinalIgnoreCase)) { Log("ERROR", "Load pattern '" + pat + "' does not exist in ETABS."); return; }
+                int joints = etabs.CountSelected(1);
+                if (joints != 1) { Log("ERROR", joints == 0 ? "No joint is selected in ETABS." : joints + " joints are selected. Select exactly one joint (the center of mass of the story)."); return; }
+                var msg = "Assign " + row.Force.ToString("0.00", CultureInfo.InvariantCulture) + " kN along " + (alongX ? "+X" : "+Y") + " (story " + row.Story + ") to the selected joint under pattern " + pat + "?\n\nAn existing joint force of this pattern on that joint will be replaced.";
+                if (MessageBox.Show(msg, "Confirm", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
+                int ret = etabs.AssignPointForce(pat, alongX ? row.Force : 0.0, alongX ? 0.0 : row.Force);
+                Log(ret == 0 ? "INFO" : "ERROR", ret == 0 ? "Force " + row.Force.ToString("0.00", CultureInfo.InvariantCulture) + " kN (" + (alongX ? "X" : "Y") + ") assigned for " + row.Story + "." : "Assign failed (code " + ret + "). Is the model unlocked?");
+            }
+            catch (Exception ex) { Log("ERROR", "Assign failed: " + (ex.InnerException ?? ex).Message); }
+        }
+
         // ---------- wall load ----------
         bool Num(string text, out double v) { return double.TryParse((text ?? "").Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out v); }
 
@@ -1099,6 +1143,12 @@ namespace BnbcUltimatePro
         {
             get { var r = DataStore.Lives.FirstOrDefault(l => l.Name == occ); return r == null ? "" : r.Notes; }
         }
+    }
+
+    public class ApplyRow
+    {
+        public string Story { get; set; }
+        public double Force { get; set; }
     }
 
     public class MapRow

@@ -100,6 +100,15 @@
 | Lists the functions that the user's own ETABSv1.dll has (cAutoSeismic, cAutoWind, cLoadPatterns, point-load functions, cDiaphragm) | UNTESTED - needs user ETABS 22 |
 | Why it exists | A public developer test report (Nov 2026) says ETABS 23's cAutoSeismic has no SetUserCoefficient. Whether ETABS 22.5 has it is unknown, so automatic transfer of the seismic coefficient is NOT built until this list is read |
 
+## Version 0.10 - Apply story forces as joint forces
+| Item | Status |
+|---|---|
+| ETABS 22.5.0 function list (read from the user's own ETABS) | VERIFIED: cAutoSeismic has only ASCE 7-16 and IBC 2006 setters, NO SetUserCoefficient; cAutoWind is empty; cPointObj.SetLoadForce exists |
+| Consequence | A BNBC coefficient cannot be set in ETABS automatically. Story forces are applied as joint forces instead |
+| Assigning a story force to one selected joint (cPointObj.SetLoadForce) | UNTESTED - needs user ETABS 22 |
+| Story forces of the seismic run are exposed correctly (sum equals base shear) | Automatic test in GitHub build |
+| Accidental torsion moments, wind torsional cases | NOT implemented |
+
 ## Not generated / not implemented
 - Flood and tidal-surge combinations (Fa)
 - Ev inside E (user supplies E)

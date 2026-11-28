@@ -428,5 +428,27 @@ namespace BnbcUltimatePro
             }
             return sb.ToString();
         }
+
+        /// <summary>
+        /// Joint force (kN, global X and Y) on the joint(s) selected in ETABS, under a load pattern.
+        /// Uses cPointObj.SetLoadForce, which ETABS 22.5.0 has. Replaces an existing joint force of that pattern.
+        /// </summary>
+        public int AssignPointForce(string pattern, double fx, double fy)
+        {
+            var unitsT = asm.GetType("ETABSv1.eUnits", true);
+            var itemT = asm.GetType("ETABSv1.eItemType", true);
+            var prev = GetUnits();
+            SetUnits(Enum.Parse(unitsT, "kN_m_C"));
+            try
+            {
+                var po = modelI.GetProperty("PointObj").GetValue(model, null);
+                var pI = asm.GetType("ETABSv1.cPointObj", true);
+                var m = pI.GetMethods().First(x => x.Name == "SetLoadForce" && x.GetParameters().Length == 6);
+                var vals = new double[] { fx, fy, 0.0, 0.0, 0.0, 0.0 };
+                var args = new object[] { "", pattern, vals, true, "Global", Enum.Parse(itemT, "SelectedObjects") };
+                return (int)m.Invoke(po, args);
+            }
+            finally { SetUnits(prev); }
+        }
     }
 }

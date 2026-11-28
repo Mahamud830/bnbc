@@ -64,6 +64,7 @@ namespace BnbcUltimatePro
             double vv, tt;
             SeismicCalc.Run(0.20, 1.0, "SC", sc, sys, SeismicCalc.PeriodTypes[0], 18.0, null, true, false, hs, ws, nm, out vv, out tt);
             ok &= Math.Abs(vv - 472.26566793718496) < 1e-4 && Math.Abs(tt - 0.6282480818391045) < 1e-9;
+            ok &= SeismicCalc.LastStoryForces.Count == 6 && Math.Abs(SeismicCalc.LastStoryForces.Sum(f => f.Value) - vv) < 1e-6;
             ok &= DataStore.WindLocs.Count == 74;
             var dh = DataStore.WindLocs.FirstOrDefault(x => x.Name == "Dhaka");
             ok &= dh != null && Math.Abs(dh.V - 65.7) < 1e-9;

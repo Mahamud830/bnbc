@@ -29,6 +29,9 @@ namespace BnbcUltimatePro
             new PeriodType { Name = "All other structural systems", Ct = 0.0488, M = 0.75 }
         };
 
+        /// <summary>Story forces Fx (kN) of the last successful run, in the order the stories were given.</summary>
+        public static List<KeyValuePair<string, double>> LastStoryForces = new List<KeyValuePair<string, double>>();
+
         public const double Beta = 0.11; // Sec 2.5.4.3, recommended value
 
         public static double Eta(double xiPercent) { return Math.Max(Math.Sqrt(10.0 / (5.0 + xiPercent)), 0.55); } // Eq 6.2.36
@@ -89,6 +92,7 @@ namespace BnbcUltimatePro
                                  out double V, out double Ttrue)
         {
             var inv = CultureInfo.InvariantCulture;
+            LastStoryForces = new List<KeyValuePair<string, double>>();
             var sb = new StringBuilder();
             double eta = Eta(5.0);
             double Ta = Period(pt.Ct, pt.M, hn);
@@ -130,6 +134,7 @@ namespace BnbcUltimatePro
             sb.AppendLine("Story            h (m)     w (kN)      Fx (kN)     Storey shear Vx (kN)");
             var fx = new List<double>();
             for (int i = 0; i < h.Count; i++) fx.Add(V * w[i] * Math.Pow(h[i], k) / den);
+            for (int i = 0; i < h.Count; i++) LastStoryForces.Add(new KeyValuePair<string, double>(names[i], fx[i]));
             for (int i = 0; i < h.Count; i++)
             {
                 double vx = 0; for (int j = 0; j < h.Count; j++) if (h[j] >= h[i]) vx += fx[j];
