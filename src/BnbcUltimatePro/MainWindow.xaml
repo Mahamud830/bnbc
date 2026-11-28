@@ -55,6 +55,7 @@
         <Button Style="{StaticResource NavBtn}" Content="Model Checker" Tag="PageCheck" Click="Nav_Click"/>
         <Button Style="{StaticResource NavBtn}" Content="Compliance Checker" Tag="PageComp" Click="Nav_Click"/>
         <Button Style="{StaticResource NavBtn}" Content="Report" Tag="PageReport" Click="Nav_Click"/>
+        <Button Style="{StaticResource NavBtn}" Content="ETABS API Check" Tag="PageApi" Click="Nav_Click"/>
         <TextBlock Text="BNBC 2020 / ETABS 22" Foreground="#6B7FA8" FontSize="11" Margin="18,30,0,0"/>
       </StackPanel>
     </Border>
@@ -379,6 +380,20 @@
                 <DataGridTextColumn Header="Detail and code reference" Binding="{Binding Details}" Width="*"/>
               </DataGrid.Columns>
             </DataGrid>
+          </DockPanel>
+        </Border>
+
+        <!-- ETABS API check -->
+        <Border x:Name="PageApi" Background="{StaticResource Card}" CornerRadius="6" Padding="20" Visibility="Collapsed">
+          <DockPanel>
+            <TextBlock DockPanel.Dock="Top" Text="ETABS API Check" FontSize="22" FontWeight="Bold"/>
+            <TextBlock DockPanel.Dock="Top" Foreground="#9FB4D9" TextWrapping="Wrap" Margin="0,6,0,8"
+                       Text="Lists the seismic, wind and load-assignment functions that your own ETABS really offers, with their exact parameters. Nothing is changed in the model. Use it to find out whether a function exists before this tool is made to call it."/>
+            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,10">
+              <Button Style="{StaticResource ActBtn}" Content="List ETABS functions" Click="ApiList_Click" Background="#0891B2"/>
+              <Button Style="{StaticResource ActBtn}" Content="Save as .txt" Click="ApiSave_Click"/>
+            </StackPanel>
+            <TextBox x:Name="TxtApiResult" IsReadOnly="True" FontFamily="Consolas" TextWrapping="NoWrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"/>
           </DockPanel>
         </Border>
       </Grid>

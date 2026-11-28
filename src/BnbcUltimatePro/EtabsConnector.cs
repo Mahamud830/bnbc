@@ -401,5 +401,32 @@ namespace BnbcUltimatePro
             }
             return n;
         }
+
+        /// <summary>Lists the seismic / wind / load-assignment methods that the user's own ETABSv1.dll really has.</summary>
+        public string DescribeApi()
+        {
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("ETABS " + Version + "   API file: " + DllPath);
+            string[] targets = { "cAutoSeismic", "cAutoWind", "cLoadPatterns", "cPointObj", "cDiaphragm" };
+            foreach (var tn in targets)
+            {
+                var t = asm.GetType("ETABSv1." + tn);
+                sb.AppendLine();
+                sb.AppendLine(tn + (t == null ? "  : NOT FOUND" : ""));
+                if (t == null) continue;
+                foreach (var m in t.GetMethods().OrderBy(x => x.Name))
+                {
+                    if (tn == "cPointObj" && !m.Name.Contains("SetLoad")) continue;
+                    if (tn == "cDiaphragm" && !m.Name.StartsWith("Set") && !m.Name.StartsWith("Get")) continue;
+                    var ps = m.GetParameters().Select(p =>
+                    {
+                        var pt = p.ParameterType; bool byRef = pt.IsByRef; if (byRef) pt = pt.GetElementType();
+                        return (byRef ? "ref " : "") + pt.Name + " " + p.Name;
+                    });
+                    sb.AppendLine("  " + m.ReturnType.Name + " " + m.Name + "(" + string.Join(", ", ps) + ")");
+                }
+            }
+            return sb.ToString();
+        }
     }
 }

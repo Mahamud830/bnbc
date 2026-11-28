@@ -18,7 +18,7 @@ namespace BnbcUltimatePro
         readonly EtabsConnector etabs = new EtabsConnector();
         readonly ObservableCollection<string> log = new ObservableCollection<string>();
         readonly ObservableCollection<PatternSpec> patterns = new ObservableCollection<PatternSpec>();
-        readonly string[] pageNames = { "PageDashboard", "PageProject", "PageSeismic", "PageLoads", "PageCombos", "PageFloors", "PageReact", "PageSeis", "PageWind", "PageCheck", "PageComp", "PageReport" };
+        readonly string[] pageNames = { "PageDashboard", "PageProject", "PageSeismic", "PageLoads", "PageCombos", "PageFloors", "PageReact", "PageSeis", "PageWind", "PageCheck", "PageComp", "PageReport", "PageApi" };
         static readonly string[] PatternTypes = { "Dead", "SuperDead", "Live", "ReduceLive", "RoofLive", "Quake", "Wind", "Snow", "Other" };
         bool loading;
         readonly ObservableCollection<MapRow> mapRows = new ObservableCollection<MapRow>();
@@ -1006,6 +1006,24 @@ namespace BnbcUltimatePro
                 Log("INFO", "Exported " + d.FileName);
             }
             catch (Exception ex) { Log("ERROR", "Export failed: " + ex.Message); }
+        }
+
+
+        // ---------- ETABS API check ----------
+        void ApiList_Click(object sender, RoutedEventArgs e)
+        {
+            if (!etabs.Connected) { Log("ERROR", "Connect to ETABS first."); return; }
+            try { TxtApiResult.Text = etabs.DescribeApi(); Log("INFO", "ETABS function list read. Nothing was changed in the model."); }
+            catch (Exception ex) { Log("ERROR", "Could not read the ETABS functions: " + (ex.InnerException ?? ex).Message); }
+        }
+
+        void ApiSave_Click(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(TxtApiResult.Text)) { Log("ERROR", "List the functions first."); return; }
+            var d = new SaveFileDialog { Filter = "Text (*.txt)|*.txt", FileName = "etabs_api_functions.txt" };
+            if (d.ShowDialog() != true) return;
+            try { File.WriteAllText(d.FileName, TxtApiResult.Text, Encoding.UTF8); Log("INFO", "Saved " + d.FileName); }
+            catch (Exception ex) { Log("ERROR", "Save failed: " + ex.Message); }
         }
 
         // ---------- wall load ----------

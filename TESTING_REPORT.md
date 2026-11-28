@@ -94,6 +94,12 @@
 | GitHub Build #6 and #7 failed: Model Checker and Report pages/handlers were defined twice and a type `ReportData` was missing | Cause: a second, unrelated copy of those two modules was present in the assistant's working folder and was not noticed before adding the new code. The duplicate copy was removed; the version tested in the GitHub build is the one described above |
 | Compile status | NOT confirmed until the next GitHub Build turns green. More errors may appear that the compiler could not report while the duplicates existed |
 
+## Version 0.9.2 - ETABS API Check
+| Item | Status |
+|---|---|
+| Lists the functions that the user's own ETABSv1.dll has (cAutoSeismic, cAutoWind, cLoadPatterns, point-load functions, cDiaphragm) | UNTESTED - needs user ETABS 22 |
+| Why it exists | A public developer test report (Nov 2026) says ETABS 23's cAutoSeismic has no SetUserCoefficient. Whether ETABS 22.5 has it is unknown, so automatic transfer of the seismic coefficient is NOT built until this list is read |
+
 ## Not generated / not implemented
 - Flood and tidal-surge combinations (Fa)
 - Ev inside E (user supplies E)
