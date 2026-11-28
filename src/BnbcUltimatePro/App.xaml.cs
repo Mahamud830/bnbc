@@ -77,20 +77,6 @@ namespace BnbcUltimatePro
             double qh0, cp0, pl0;
             var wf = WindCalc.Forces(wn, wz, 20.0, 30.0, eB, 65.7, 1.0, 1.0, out qh0, out cp0, out pl0);
             ok &= Math.Abs(wf.Sum(r => r.F) - 783.5165631014145) < 1e-3;
-            var rd = new ReportData { ProjectName = "A&B <test>", Seismic = null };
-            rd.Floors.Add(new[] { "Floor", "Occupancy" }); rd.Floors.Add(new[] { "S1", "Office" });
-            string html = ReportBuilder.Html(rd, "0.0", new DateTime(2026, 1, 1));
-            ok &= html.Contains("A&amp;B &lt;test&gt;") && html.Contains("Not calculated") && html.Contains("MISSING") && !html.Contains(">PASS<");
-            string tmp = System.IO.Path.GetTempFileName() + ".xlsx";
-            try
-            {
-                int ns = ReportBuilder.WriteXlsx(rd, tmp);
-                int parts = 0;
-                using (var pkg = System.IO.Packaging.Package.Open(tmp, System.IO.FileMode.Open, System.IO.FileAccess.Read))
-                    foreach (var pt in pkg.GetParts()) if (pt.Uri.ToString().Contains("/xl/worksheets/sheet")) parts++;
-                ok &= ns == 8 && parts == 8;
-            }
-            finally { try { System.IO.File.Delete(tmp); } catch { } }
             var rs = new System.Collections.Generic.List<ReportSheet>();
             var r1 = new ReportSheet("Project"); r1.Add("Item", "Value"); r1.Add("Name", "A & B <test>"); r1.Add("Z", "0.20"); rs.Add(r1);
             var r2 = new ReportSheet("Text", true); r2.AddLines("line one\nline two"); rs.Add(r2);

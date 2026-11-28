@@ -55,11 +55,6 @@
         <Button Style="{StaticResource NavBtn}" Content="Model Checker" Tag="PageCheck" Click="Nav_Click"/>
         <Button Style="{StaticResource NavBtn}" Content="Compliance Checker" Tag="PageComp" Click="Nav_Click"/>
         <Button Style="{StaticResource NavBtn}" Content="Report" Tag="PageReport" Click="Nav_Click"/>
-        <Button Style="{StaticResource NavBtn}" Content="Report" Tag="PageReport" Click="Nav_Click"/>
-        <Button Style="{StaticResource NavBtn}" Content="Model Checker" Tag="PageCheck" Click="Nav_Click"/>
-        <Button Style="{StaticResource NavBtn}" Content="Compliance Checker" Tag="PageComp" Click="Nav_Click"/>
-        <Button Style="{StaticResource NavBtn}" Content="Report" Tag="PageReport" Click="Nav_Click"/>
-        <Button Style="{StaticResource NavBtn}" Content="Report" Tag="PageReport" Click="Nav_Click"/>
         <TextBlock Text="BNBC 2020 / ETABS 22" Foreground="#6B7FA8" FontSize="11" Margin="18,30,0,0"/>
       </StackPanel>
     </Border>
@@ -332,27 +327,6 @@
         <!-- Model checker -->
         <Border x:Name="PageCheck" Background="{StaticResource Card}" CornerRadius="6" Padding="20" Visibility="Collapsed">
           <DockPanel>
-            <TextBlock DockPanel.Dock="Top" Text="Structural Model Checker" FontSize="22" FontWeight="Bold"/>
-            <TextBlock DockPanel.Dock="Top" Foreground="#9FB4D9" TextWrapping="Wrap" Margin="0,6,0,8"
-                       Text="Reads the open ETABS model and your project data. A check is PASS only when it was actually verified. Missing data is INCOMPLETE and anything that could not be read is UNKNOWN."/>
-            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,10">
-              <Button Style="{StaticResource ActBtn}" Content="Run checks" Click="RunChecks_Click" Background="#0891B2"/>
-              <Button Style="{StaticResource ActBtn}" Content="Export report (.txt)" Click="CheckExport_Click"/>
-            </StackPanel>
-            <TextBlock x:Name="TxtCheckSummary" DockPanel.Dock="Top" FontFamily="Consolas" Margin="0,0,0,8"/>
-            <DataGrid x:Name="CheckGrid" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True" HeadersVisibility="Column">
-              <DataGrid.Columns>
-                <DataGridTextColumn Header="Check" Binding="{Binding Check}" Width="230"/>
-                <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="110"/>
-                <DataGridTextColumn Header="Details" Binding="{Binding Details}" Width="*"/>
-              </DataGrid.Columns>
-            </DataGrid>
-          </DockPanel>
-        </Border>
-
-        <!-- Model checker -->
-        <Border x:Name="PageCheck" Background="{StaticResource Card}" CornerRadius="6" Padding="20" Visibility="Collapsed">
-          <DockPanel>
             <TextBlock DockPanel.Dock="Top" Text="Model Checker" FontSize="22" FontWeight="Bold"/>
             <TextBlock DockPanel.Dock="Top" Foreground="#9FB4D9" TextWrapping="Wrap" Margin="0,6,0,8"
                        Text="Reads the open ETABS model and your project data. A check that cannot be completed is shown as NOT CHECKED or INCOMPLETE, never as PASS."/>
@@ -369,21 +343,6 @@
               </DataGrid.Columns>
             </DataGrid>
           </DockPanel>
-        </Border>
-
-        <!-- Report -->
-        <Border x:Name="PageReport" Background="{StaticResource Card}" CornerRadius="6" Padding="20" Visibility="Collapsed">
-          <StackPanel>
-            <TextBlock Text="Report Generator" FontSize="22" FontWeight="Bold"/>
-            <TextBlock Foreground="#9FB4D9" TextWrapping="Wrap" Margin="0,6,0,10"
-                       Text="Collects the results already calculated in the other pages. Anything not calculated is written as 'Not calculated', never as a result. The HTML report opens in your browser: use Print and choose Save as PDF to get a PDF."/>
-            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-              <Button Style="{StaticResource ActBtn}" Content="Show what is included" Click="ReportPreview_Click"/>
-              <Button Style="{StaticResource ActBtn}" Content="Export HTML report" Click="ReportHtml_Click" Background="#0891B2"/>
-              <Button Style="{StaticResource ActBtn}" Content="Export Excel (.xlsx)" Click="ReportXlsx_Click" Background="#0891B2"/>
-            </StackPanel>
-            <TextBlock x:Name="TxtReportInfo" FontFamily="Consolas" TextWrapping="Wrap"/>
-          </StackPanel>
         </Border>
 
         <!-- Report -->

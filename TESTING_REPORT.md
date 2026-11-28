@@ -88,6 +88,12 @@
 | Collection of seismic, wind, combination, live load and model-check results | UI untested |
 | What it checks | Only the tool's own results and the limits it knows. It is NOT a full BNBC compliance review and not a design approval |
 
+## Version 0.9.1 - build fix
+| Item | Status |
+|---|---|
+| GitHub Build #6 and #7 failed: Model Checker and Report pages/handlers were defined twice and a type `ReportData` was missing | Cause: a second, unrelated copy of those two modules was present in the assistant's working folder and was not noticed before adding the new code. The duplicate copy was removed; the version tested in the GitHub build is the one described above |
+| Compile status | NOT confirmed until the next GitHub Build turns green. More errors may appear that the compiler could not report while the duplicates existed |
+
 ## Not generated / not implemented
 - Flood and tidal-surge combinations (Fa)
 - Ev inside E (user supplies E)
